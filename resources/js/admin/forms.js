@@ -83,6 +83,14 @@ async function submit(form, event) {
             form.reset();
         }
 
+        // Refresh a DataTable instead of navigating (e.g. stock adjustments).
+        const table = form.dataset.geniTable ? document.querySelector(form.dataset.geniTable) : null;
+        if (table && window.jQuery?.fn?.dataTable?.isDataTable(table)) {
+            window.jQuery(table).DataTable().ajax.reload(null, false);
+            toast('success', message);
+            return;
+        }
+
         if (result.data?.redirect) {
             flashNext('success', message);
             if (result.data.redirect === window.location.href) {

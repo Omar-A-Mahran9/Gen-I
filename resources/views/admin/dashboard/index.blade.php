@@ -188,8 +188,20 @@
         @endcan
     </div>
 
-    {{-- Business modules: honest empty state, no fake figures --}}
-    <x-admin.card :title="__('admin.dashboard.modules.title')" icon="ki-abstract-26">
-        <x-admin.empty-state :title="__('admin.dashboard.modules.title')" :body="__('admin.dashboard.modules.body')" />
-    </x-admin.card>
+    {{-- Business overview: live counts for the modules the user may access (no sample data). --}}
+    @if (! empty($business))
+        <x-admin.card :title="__('admin.dashboard.business.title')" icon="ki-chart-simple" class="mb-5 mb-xl-8">
+            <div class="row g-5">
+                @foreach ($business as $key => $stat)
+                    <div class="col-6 col-md-4 col-xl-2">
+                        <a href="{{ route($stat['route']) }}" class="d-block border border-dashed border-gray-300 rounded p-5 text-hover-primary h-100" data-geni-business-stat="{{ $key }}">
+                            <i class="ki-outline {{ $stat['icon'] }} fs-2x text-primary mb-3 d-block"></i>
+                            <div class="fs-2 fw-bold text-gray-900">{{ number_format($stat['value']) }}</div>
+                            <div class="text-gray-500 fs-7">{{ __('admin.dashboard.business.'.$key) }}</div>
+                        </a>
+                    </div>
+                @endforeach
+            </div>
+        </x-admin.card>
+    @endif
 @endsection

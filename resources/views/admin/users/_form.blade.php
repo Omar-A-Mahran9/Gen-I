@@ -5,6 +5,10 @@
         <x-admin.card :title="__('admin.users.sections.account')" icon="ki-profile-circle" class="mb-5 mb-xl-8">
             <x-admin.form.input name="name" :label="__('admin.fields.name')" :value="$user->name" required autocomplete="name" maxlength="255" />
             <x-admin.form.input name="email" type="email" :label="__('admin.fields.email')" :value="$user->email" required autocomplete="email" dir="ltr" maxlength="255" />
+            @if (! empty($organizations))
+                <x-admin.form.select name="organization_id" :label="__('admin.fields.organization_id')" :value="$user->organization_id" :placeholder="__('admin.users.no_organization')"
+                    :options="$organizations" :hint="__('admin.users.organization_hint')" />
+            @endif
             <x-admin.form.select name="locale" :label="__('admin.fields.locale')" :value="$user->locale" :placeholder="__('admin.common.optional')"
                 :options="collect(app(\App\Support\Locale::class)->available())->mapWithKeys(fn ($code) => [$code => config('admin.locales.'.$code.'.name')])->all()" />
 

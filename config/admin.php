@@ -39,11 +39,12 @@ return [
     */
     'fonts' => [
         'ar' => [
-            'family' => 'IBM Plex Sans Arabic',
+            'family' => 'Tajawal',
             'faces' => [
-                400 => 'assets/admin/fonts/ibm-plex-sans-arabic/IBMPlexSansArabic-Regular.ttf',
-                600 => 'assets/admin/fonts/ibm-plex-sans-arabic/IBMPlexSansArabic-SemiBold.ttf',
-                700 => 'assets/admin/fonts/ibm-plex-sans-arabic/IBMPlexSansArabic-Bold.ttf',
+                400 => 'assets/admin/fonts/tajawal/Tajawal-Regular.ttf',
+                500 => 'assets/admin/fonts/tajawal/Tajawal-Medium.ttf',
+                600 => 'assets/admin/fonts/tajawal/Tajawal-Bold.ttf',
+                700 => 'assets/admin/fonts/tajawal/Tajawal-Bold.ttf',
             ],
         ],
         'en' => [
@@ -82,6 +83,15 @@ return [
         'roles' => ['view', 'create', 'update', 'delete'],
         'settings' => ['view', 'update'],
         'audit' => ['view'],
+        // Business modules (Phase 2). Granted only to super-admin by default; other
+        // role assignments require GEN-I's approved staff role catalogue (BD-14).
+        'organizations' => ['view', 'create', 'update', 'delete'],
+        'companies' => ['view', 'create', 'update', 'delete'],
+        'branches' => ['view', 'create', 'update', 'delete'],
+        'catalog' => ['view', 'create', 'update', 'delete', 'approve'],
+        'policies' => ['view', 'manage', 'approve'],
+        'pricing' => ['view', 'manage'],
+        'inventory' => ['view', 'adjust'],
     ],
 
     /*
@@ -172,6 +182,71 @@ return [
             'permission' => 'settings.view',
         ],
         [
+            'key' => 'business',
+            'heading' => 'admin.menu.business',
+            'permission' => ['organizations.view', 'companies.view', 'branches.view'],
+        ],
+        [
+            'key' => 'organizations',
+            'label' => 'admin.menu.organizations',
+            'icon' => 'ki-outline ki-office-bag',
+            'route' => 'admin.organizations.index',
+            'active' => ['admin.organizations.*'],
+            'permission' => 'organizations.view',
+        ],
+        [
+            'key' => 'companies',
+            'label' => 'admin.menu.companies',
+            'icon' => 'ki-outline ki-briefcase',
+            'route' => 'admin.companies.index',
+            'active' => ['admin.companies.*'],
+            'permission' => 'companies.view',
+        ],
+        [
+            'key' => 'branches',
+            'label' => 'admin.menu.branches',
+            'icon' => 'ki-outline ki-shop',
+            'route' => 'admin.branches.index',
+            'active' => ['admin.branches.*'],
+            'permission' => 'branches.view',
+        ],
+        [
+            'key' => 'catalog_heading',
+            'heading' => 'admin.menu.catalog_heading',
+            'permission' => ['catalog.view', 'pricing.view', 'policies.view', 'inventory.view'],
+        ],
+        [
+            'key' => 'catalog',
+            'label' => 'admin.menu.catalog',
+            'icon' => 'ki-outline ki-handcart',
+            'permission' => 'catalog.view',
+            'children' => [
+                ['key' => 'products', 'label' => 'admin.menu.products', 'route' => 'admin.products.index', 'active' => ['admin.products.*', 'admin.variants.*'], 'permission' => 'catalog.view'],
+                ['key' => 'categories', 'label' => 'admin.menu.categories', 'route' => 'admin.categories.index', 'active' => ['admin.categories.*'], 'permission' => 'catalog.view'],
+                ['key' => 'brands', 'label' => 'admin.menu.brands', 'route' => 'admin.brands.index', 'active' => ['admin.brands.*'], 'permission' => 'catalog.view'],
+            ],
+        ],
+        [
+            'key' => 'pricing',
+            'label' => 'admin.menu.pricing',
+            'icon' => 'ki-outline ki-price-tag',
+            'permission' => ['pricing.view', 'policies.view'],
+            'children' => [
+                ['key' => 'price_lists', 'label' => 'admin.menu.price_lists', 'route' => 'admin.price-lists.index', 'active' => ['admin.price-lists.*'], 'permission' => 'pricing.view'],
+                ['key' => 'policies', 'label' => 'admin.menu.policies', 'route' => 'admin.policies.index', 'active' => ['admin.policies.*'], 'permission' => 'policies.view'],
+            ],
+        ],
+        [
+            'key' => 'inventory',
+            'label' => 'admin.menu.inventory',
+            'icon' => 'ki-outline ki-package',
+            'permission' => 'inventory.view',
+            'children' => [
+                ['key' => 'stock', 'label' => 'admin.menu.stock', 'route' => 'admin.inventory.index', 'active' => ['admin.inventory.index'], 'permission' => 'inventory.view'],
+                ['key' => 'movements', 'label' => 'admin.menu.movements', 'route' => 'admin.inventory.movements', 'active' => ['admin.inventory.movements'], 'permission' => 'inventory.view'],
+            ],
+        ],
+        [
             'key' => 'account',
             'heading' => 'admin.menu.account',
         ],
@@ -191,9 +266,16 @@ return [
         ],
     ],
 
-    // Upload limits (kilobytes) for branding assets.
+    // Upload limits (kilobytes).
     'uploads' => [
         'logo_max_kb' => 1024,
         'favicon_max_kb' => 256,
+        'product_image_max_kb' => 5120,
+    ],
+
+    // Organization defaults from the blueprint field rules (S2 §9.1).
+    'organization_defaults' => [
+        'timezone' => 'Africa/Cairo',
+        'currency' => 'EGP',
     ],
 ];

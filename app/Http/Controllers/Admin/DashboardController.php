@@ -2,8 +2,17 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\ActiveStatus;
+use App\Enums\ProductStatus;
+use App\Enums\VariantStatus;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
+use App\Models\Branch;
+use App\Models\Company;
+use App\Models\InventoryBalance;
+use App\Models\Organization;
+use App\Models\Product;
+use App\Models\ProductVariant;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -35,13 +44,45 @@ class DashboardController extends Controller
             ? User::query()->whereNotNull('last_login_at')->latest('last_login_at')->limit(5)->get(['id', 'name', 'email', 'last_login_at', 'last_login_ip'])
             : collect();
 
+        $business = $this->businessStats($user);
+
         return view('admin.dashboard.index', [
+            'business' => $business,
             'stats' => $stats,
             'recentActivity' => $recentActivity,
             'recentLogins' => $recentLogins,
             'system' => $this->systemStatus(),
             'unreadNotifications' => $user->unreadNotifications()->count(),
         ]);
+    }
+
+    /**
+     * Live business counts within the user's organization scope; only for permitted modules.
+     *
+     * @return array<string, array{value: int, icon: string, route: string}>
+     */
+    protected function businessStats(User $user): array
+    {
+        $stats = [];
+
+        if ($user->can('organizations.view')) {
+            $stats['organizations'] = ['value' => Organization::query()->forUser($user)->count(), 'icon' => 'ki-office-bag', 'route' => 'admin.organizations.index'];
+        }
+        if ($user->can('companies.view')) {
+            $stats['companies'] = ['value' => Company::query()->forUser($user)->count(), 'icon' => 'ki-briefcase', 'route' => 'admin.companies.index'];
+        }
+        if ($user->can('branches.view')) {
+            $stats['branches'] = ['value' => Branch::query()->forUser($user)->where('status', ActiveStatus::Active->value)->count(), 'icon' => 'ki-shop', 'route' => 'admin.branches.index'];
+        }
+        if ($user->can('catalog.view')) {
+            $stats['products'] = ['value' => Product::query()->forUser($user)->where('status', ProductStatus::Published->value)->count(), 'icon' => 'ki-handcart', 'route' => 'admin.products.index'];
+            $stats['variants'] = ['value' => ProductVariant::query()->forUser($user)->where('status', VariantStatus::Active->value)->count(), 'icon' => 'ki-barcode', 'route' => 'admin.products.index'];
+        }
+        if ($user->can('inventory.view')) {
+            $stats['out_of_stock'] = ['value' => InventoryBalance::query()->forUser($user)->where('on_hand', 0)->count(), 'icon' => 'ki-package', 'route' => 'admin.inventory.index'];
+        }
+
+        return $stats;
     }
 
     /**

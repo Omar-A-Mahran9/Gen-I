@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\Users\ResetUserPasswordRequest;
 use App\Http\Requests\Admin\Users\StoreUserRequest;
 use App\Http\Requests\Admin\Users\UpdateUserRequest;
 use App\Models\AuditLog;
+use App\Models\Organization;
 use App\Models\User;
 use App\Services\Admin\PrivilegeGuard;
 use App\Services\Admin\UserService;
@@ -36,6 +37,7 @@ class UserController extends Controller
 
         return view('admin.users.index', [
             'roles' => Role::query()->orderBy('name')->pluck('name'),
+            'organizations' => $request->user()->isSuperAdmin() ? Organization::query()->orderBy('name')->pluck('name', 'id')->all() : [],
         ]);
     }
 
@@ -46,6 +48,7 @@ class UserController extends Controller
         return view('admin.users.create', [
             'user' => new User(['is_active' => true]),
             'assignableRoles' => $this->guard->assignableRoles($request->user()),
+            'organizations' => $this->organizationOptions($request),
         ]);
     }
 
@@ -84,6 +87,7 @@ class UserController extends Controller
             'user' => $user->load('roles'),
             'assignableRoles' => $this->guard->assignableRoles($request->user()),
             'canAssignRoles' => $request->user()->can('assignRoles', $user),
+            'organizations' => $this->organizationOptions($request),
         ]);
     }
 
@@ -156,11 +160,24 @@ class UserController extends Controller
         return response()->json(['results' => $results]);
     }
 
+    /**
+     * @return array<int, string>
+     */
+    protected function organizationOptions(Request $request): array
+    {
+        return $request->user()->isSuperAdmin() ? Organization::query()->orderBy('name')->pluck('name', 'id')->all() : [];
+    }
+
     protected function table(Request $request): JsonResponse
     {
         $actor = $request->user();
 
-        return DataTable::of(User::query()->with('roles:id,name'), $request)
+        $query = User::query()->with(['roles:id,name', 'organization:id,name'])
+            ->when(! $actor->isSuperAdmin(), fn (Builder $q) => $actor->organization_id === null
+                ? $q->whereNull('organization_id')
+                : $q->where('organization_id', $actor->organization_id));
+
+        return DataTable::of($query, $request)
             ->searchable(['name', 'email'])
             ->sortable(['name' => 'name', 'email' => 'email', 'status' => 'is_active', 'last_login_at' => 'last_login_at', 'created_at' => 'created_at'])
             ->defaultOrder('created_at')
@@ -168,6 +185,10 @@ class UserController extends Controller
                 $status = $request->input('filters.status');
                 if (in_array($status, ['active', 'inactive'], true)) {
                     $query->where('is_active', $status === 'active');
+                }
+
+                if (is_numeric($organization = $request->input('filters.organization_id'))) {
+                    $query->where('organization_id', (int) $organization);
                 }
 
                 $role = $request->input('filters.role');
@@ -179,6 +200,7 @@ class UserController extends Controller
                 'id' => $user->id,
                 'name' => view('admin.users.partials.name-cell', ['user' => $user])->render(),
                 'email' => e($user->email),
+                'organization' => e($user->organization?->name ?? '—'),
                 'roles' => view('admin.users.partials.roles-cell', ['user' => $user])->render(),
                 'status' => view('admin.users.partials.status-cell', ['user' => $user])->render(),
                 'last_login_at' => $user->last_login_at ? e(format_datetime($user->last_login_at)) : '<span class="text-muted">—</span>',

@@ -24,6 +24,14 @@
                     <option value="active">{{ __('admin.common.active') }}</option>
                     <option value="inactive">{{ __('admin.common.inactive') }}</option>
                 </select>
+                @if (! empty($organizations))
+                    <select name="organization_id" class="form-select form-select-solid w-200px" aria-label="{{ __('admin.fields.organization_id') }}">
+                        <option value="">{{ __('admin.filters.all_organizations') }}</option>
+                        @foreach ($organizations as $orgId => $orgName)
+                            <option value="{{ $orgId }}">{{ $orgName }}</option>
+                        @endforeach
+                    </select>
+                @endif
                 <select name="role" class="form-select form-select-solid w-200px" aria-label="{{ __('admin.users.filters.role') }}">
                     <option value="">{{ __('admin.users.filters.all_roles') }}</option>
                     @foreach ($roles as $role)
@@ -34,9 +42,10 @@
         </div>
         <div class="card-body pt-0">
             <x-admin.datatable id="geni_users_table" :url="route('admin.users.index')" filters="#geni_users_filters" search="#geni_users_search"
-                :order="[[4, 'desc']]"
+                :order="[[5, 'desc']]"
                 :columns="[
                     ['data' => 'name', 'title' => __('admin.users.columns.name'), 'class' => 'min-w-200px'],
+                    ['data' => 'organization', 'title' => __('admin.fields.organization_id'), 'orderable' => false],
                     ['data' => 'roles', 'title' => __('admin.users.columns.roles'), 'orderable' => false],
                     ['data' => 'status', 'title' => __('admin.users.columns.status')],
                     ['data' => 'last_login_at', 'title' => __('admin.users.columns.last_login')],

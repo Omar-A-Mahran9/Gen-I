@@ -6,6 +6,7 @@ import { initActions } from './actions';
 import { initDataTables } from './datatable';
 import { clearErrors, initForms, showErrors } from './forms';
 import { request } from './http';
+import { initInventory } from './inventory';
 import { initSelect2Ajax } from './select2';
 import { confirmDialog, showPendingFlash, toast } from './ui';
 
@@ -31,6 +32,7 @@ function boot() {
 }
 
 initActions();
+initInventory();
 
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', boot);
