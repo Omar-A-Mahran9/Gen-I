@@ -26,10 +26,13 @@
 - [x] Record approved technical decisions (TD-01…TD-17) and open decisions (`docs/business-decisions.md`).
 - [x] Identify blocking business questions (BD-01…BD-14).
 - [x] Confirm access to source documentation: five PDFs + one XLSX found in `~/Downloads/` (outside the repo); text extracted and reviewed.
-- [ ] Owner decision on OT-09 (copy source docs into `docs/source/` and whether to commit them).
-- [ ] Owner approval of this roadmap.
+- [x] OT-09 resolved: source docs copied to git-ignored `docs/source/` (TD-18).
+- [x] Owner approval of the roadmap (2026-11-01).
 
-## Phase 1 — Git and Project Foundation
+## Phase 1 — Git and Project Foundation  *(executed 2026-11-01 — awaiting owner review)*
+
+Outcome: repo initialized in `Gen-I/`; empty remote verified; `main` and `develop` pushed; Sanctum 4.3.3, Spatie Permission 8.3.2 and Boost 2.10.4 installed; `.env.example` set to MySQL. **Not done:** no MySQL server was started and no database created (see OT-12, pending approval).
+
 
 1. **Repository**
    - `git init -b main` inside `Gen-I/`.
@@ -46,9 +49,9 @@
 4. **Tooling**
    - Install Laravel Boost (dev) (TD-17), then re-read the generated guidelines. Boost only rewrites its own `<laravel-boost-guidelines>` block; the GEN-I section in `CLAUDE.md` must survive. Verify this.
 5. **Environment**
-   - `.env.example`: `APP_NAME="GEN-I"`, `APP_LOCALE=ar`, `APP_FALLBACK_LOCALE=en`, `DB_CONNECTION=mysql`, `DB_PORT=3307` (local Homebrew MySQL 8.4) with **empty** credentials.
-   - Local `.env` adjusted to match (never committed).
-   - Create the local `geni` and `geni_testing` databases.
+   - `.env.example`: `APP_NAME="GEN-I"`, `APP_LOCALE=ar`, `APP_FALLBACK_LOCALE=en`, `DB_CONNECTION=mysql`, `DB_PORT=3306` (the standard default; local Homebrew uses 3307, per the comment in the file), `DB_DATABASE=geni`, **empty** credentials.
+   - Local `.env`: only `APP_NAME` and `APP_LOCALE` were updated; it stays on SQLite until OT-12 is approved (never committed).
+   - ~~Create the local `geni` and `geni_testing` databases~~ → deferred to OT-12 approval.
 6. **Dependencies (verified 2026-11-01, to be re-checked at install time)**
    - `laravel/sanctum` via `php artisan install:api` (creates `routes/api.php`; prefix set to `api/v1`).
    - `spatie/laravel-permission` (publish config + migration; adjust key types per OT-01).

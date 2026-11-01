@@ -79,6 +79,39 @@ The detailed typed columns are in S2 §9 (the typed data dictionary). Each modul
 | Pending-outbox partial index | Regular index on (`published_at`, `next_retry_at`) | — |
 | CHECK constraints | MySQL 8.0.16+ enforces `CHECK`; also validated in Form Requests/Services. Cross-row invariants (reserved ≤ on_hand, refunds ≤ captured) enforced in transactional Services + reconciliation jobs (as S2 §10 already requires) | Unit + integration tests |
 
+## 4a. Blueprint deviation register
+
+The 102 S2 tables are the **primary reference**. They are **not** created in bulk. Each module phase reviews its tables against the checklist in §4b. Every deviation from S2 is listed here with its technical reason. Proposed deviations need approval before the owning module's migrations are written.
+
+| # | S2 design | GEN-I deviation | Technical reason | Status |
+|---|---|---|---|---|
+| DV-01 | All 102 tables as one logical schema | Created **per module phase**; conditional tables (retail orders, returns/trade-in/installments, credit) are not created until activated | Keeps unreviewed, unused structures out of production; S3 already scopes conditional modules out of the baseline | Approved (owner, 2026-11-01) |
+| DV-02 | `uuid` PK on every table | `BIGINT` PK + unique public `uuid` on API-exposed tables | InnoDB clusters rows by PK, so random/36-char PKs inflate every secondary index. Spatie and Sanctum morph keys default to big integers. Public UUIDs still prevent ID guessing | Proposed (OT-01) |
+| DV-03 | `org_id` + PostgreSQL RLS (`FORCE ROW LEVEL SECURITY`) | `organization_id` + Eloquent global scope + Policies + Services that derive scope server-side | MySQL has no row-level security | Proposed (OT-02) |
+| DV-04 | Composite tenant FKs `(org_id, parent_id) → parent(org_id, id)` | Single-column FK + same-organization validation in Services/Form Requests; composite unique (`organization_id`,`id`) only where a child must be pinned | Composite FKs are possible in MySQL but make Eloquent relations awkward. Validation plus cross-scope tests give the same guarantee at the app boundary | Proposed |
+| DV-05 | `roles`, `permissions`, `user_roles`, `role_permissions` | Spatie tables: `roles`, `permissions`, `model_has_roles`, `model_has_permissions`, `role_has_permissions`; scope via membership tables | Approved use of Spatie (TD-10). S2's scoped assignment is mapped per OT-03 | Approved package; scope mapping proposed (OT-03) |
+| DV-06 | Partial unique index on `repair_bookings(org_id, slot_id) WHERE status IN (…)` | Stored generated column `active_slot_id` + UNIQUE index | MySQL has no partial indexes, and its unique indexes ignore NULLs | Proposed |
+| DV-07 | Exclusion constraint on overlapping slot ranges | Serialized slot allocator under `lockForUpdate` | MySQL has no exclusion constraints | Proposed |
+| DV-08 | `NULLS NOT DISTINCT` for optional scope uniqueness | Non-null normalized `scope_key` column | MySQL unique indexes treat NULLs as distinct | Proposed |
+| DV-09 | `timestamptz` | UTC `timestamp`/`datetime` + application timezone | MySQL has no timezone-aware column type | Proposed |
+| DV-10 | `numeric` money | `DECIMAL(14,2)` + `CHAR(3)` currency | Equivalent exact type; precision to be confirmed with BD-04 | Proposed |
+| DV-11 | GIN index on `chunks.search_vector` (tsvector) | InnoDB `FULLTEXT` index | MySQL has no tsvector/GIN. Arabic tokenization quality must be validated in MOD06 | Proposed |
+| DV-12 | Partial index on pending `outbox_events` | Composite index (`published_at`, `next_retry_at`) | No partial indexes in MySQL | Proposed |
+| DV-13 | Table `notifications` (delivery attempts) | Renamed `notification_deliveries` | Laravel's database notification channel already uses `notifications` | Proposed |
+| DV-14 | Lifecycle values as PostgreSQL enums/lookup checks | `VARCHAR` + PHP backed enums (+ `CHECK` where useful) | Avoids `ALTER TABLE … ENUM` migrations; keeps one source of truth in PHP | Proposed |
+| DV-15 | Separate runtime/migration DB roles (RLS bypass protection) | Separate DB users for app runtime vs migrations in production (least privilege) | RLS-specific concern no longer applies; least-privilege still applies | Proposed (MOD11) |
+
+## 4b. Per-module table review checklist
+
+Before writing migrations for a module, produce a short review in the module's PR covering:
+1. **Entities and relationships:** transcribe the module's tables from S2 §9 and confirm each FK target and its cardinality (unique FK = 0..1).
+2. **Foreign keys:** required vs nullable; delete behaviour (`restrict` for business records); cross-module FKs only to already-existing tables (module dependency order, `module-map.md` §3).
+3. **Unique constraints:** composite uniques from S2 §10 (role-permission pairs, memberships, SKUs, branch/variant inventory, version numbers, provider/source event keys).
+4. **Indexes:** FKs, `organization_id`-first composites, the status/date indexes listed in S2 §10.
+5. **MySQL compatibility:** apply DV-01…DV-15; flag any new S2 feature that has no direct MySQL equivalent.
+6. **Business rules:** which BR01–BR12 the tables support, and which invariants must be enforced in Services instead of constraints.
+7. **Dependencies:** which approved business decisions (BD-xx) the table content depends on.
+
 ## 5. Indexing (S2 §10)
 
 - Index every high-volume FK. Put `organization_id` first where queries are tenant-scoped.
