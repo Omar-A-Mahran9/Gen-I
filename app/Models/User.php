@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -33,7 +34,29 @@ class User extends Authenticatable
             'password' => 'hashed',
             'is_active' => 'boolean',
             'last_login_at' => 'datetime',
+            'organization_id' => 'integer',
         ];
+    }
+
+    /**
+     * @return BelongsTo<Organization, $this>
+     */
+    public function organization(): BelongsTo
+    {
+        return $this->belongsTo(Organization::class);
+    }
+
+    /**
+     * Whether the user may see or manage records of the given organization.
+     * Super administrators are platform-wide; everyone else is limited to their own organization.
+     */
+    public function canAccessOrganization(?int $organizationId): bool
+    {
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+
+        return $organizationId !== null && $this->organization_id !== null && $this->organization_id === (int) $organizationId;
     }
 
     /**
