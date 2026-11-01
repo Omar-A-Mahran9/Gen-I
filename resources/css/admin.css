@@ -1,0 +1,79 @@
+/*
+ * GEN-I admin overrides on top of Metronic 8.2.0 (Bootstrap 5.3).
+ * IMPORTANT: this file must never import Tailwind; its Preflight reset
+ * breaks Bootstrap/Metronic styles. Tailwind stays in resources/css/app.css.
+ *
+ * Brand colours: when official GEN-I colours are approved, override the
+ * Bootstrap variables here, e.g. :root { --bs-primary: …; --bs-primary-rgb: …; }
+ */
+
+/* Authentication aside */
+.geni-auth-aside {
+    background-color: #0d3a8a;
+    background-image:
+        linear-gradient(135deg, rgba(27, 132, 255, 0.92) 0%, rgba(13, 58, 138, 0.95) 100%),
+        url("/assets/admin/media/auth/bg4-dark.jpg");
+    background-size: cover;
+    background-position: center;
+}
+
+/* Buttons used as Metronic menu links (logout form) */
+button.menu-link {
+    cursor: pointer;
+    color: inherit;
+}
+
+/* Field-level validation shown by both server rendering and AJAX forms */
+.invalid-feedback:empty {
+    display: none !important;
+}
+
+[data-geni-field].has-error .form-control,
+[data-geni-field].has-error .form-select {
+    border-color: var(--bs-danger);
+}
+
+/* DataTables processing indicator */
+div.dataTables_wrapper div.dataTables_processing {
+    border-radius: 0.475rem;
+    box-shadow: var(--bs-box-shadow-sm);
+    background-color: var(--bs-body-bg);
+    color: var(--bs-gray-700);
+    font-weight: 600;
+    padding: 1rem 1.5rem;
+}
+
+table.dataTable thead th {
+    white-space: nowrap;
+}
+
+/* RTL fixes for vendor widgets */
+[dir="rtl"] .select2-container--bootstrap5 .select2-selection__clear {
+    left: 3rem !important;
+    right: auto !important;
+}
+
+[dir="rtl"] .toast-top-right,
+[dir="rtl"] .toastr-top-right {
+    right: auto;
+    left: 12px;
+}
+
+/* Keep LTR data (emails, IPs, codes) readable inside RTL layouts */
+[dir="ltr"].text-truncate,
+[dir="ltr"] {
+    unicode-bidi: plaintext;
+}
+
+/* Image input: show the whole placeholder/logo */
+.image-input .image-input-wrapper.bgi-size-contain {
+    background-size: contain;
+}
+
+/* Small screens: let filter controls wrap to full width */
+@media (max-width: 575.98px) {
+    .card-title form,
+    .card-title.flex-wrap > * {
+        width: 100% !important;
+    }
+}
