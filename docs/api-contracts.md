@@ -94,3 +94,16 @@ Each module phase adds a section to this file listing, for every endpoint:
 - the linked FR/UC IDs.
 
 Feature tests assert these shapes.
+
+## 5. Implemented endpoints (foundation)
+
+| Method & path | Auth | Throttle | Request | Success | Errors |
+|---|---|---|---|---|---|
+| `POST /api/v1/auth/token` | public | `api-token`: 5/min per email+IP, 20/min per IP | `email`, `password`, `device_name` (≤100) | `201 {data: {token, token_type: "Bearer", user}}` | `422 validation_failed` (bad credentials or inactive account → `details.email`), `429 rate_limited` |
+| `GET /api/v1/user` | Bearer token, active account | `api`: 60/min per user | — | `200 {data: UserResource}` | `401 unauthenticated` |
+| `DELETE /api/v1/auth/token` | Bearer token | `api` | — | `204` (current token revoked) | `401 unauthenticated` |
+
+`UserResource`: `id`, `name`, `email`, `locale`, `is_active`, `email_verified_at`, `roles` (names), `created_at` (ISO-8601 UTC).
+Every response carries `X-Request-Id`; API responses carry `Content-Language`. Error bodies follow §2 (verified by `tests/Feature/Api/ApiFoundationTest.php`).
+
+Note: `id` is currently the numeric primary key; switch to a public UUID if OT-01 is approved before any public client depends on it.

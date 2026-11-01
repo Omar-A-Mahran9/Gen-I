@@ -60,7 +60,7 @@ Outcome: repo initialized in `Gen-I/`; empty remote verified; `main` and `develo
 
 *Blocking: none beyond approval. OT-07 (CI/Docker) can follow later.*
 
-## Phase 2 — Metronic Admin Foundation  *(drafted — confirm)*
+## Phase 2 — Metronic Admin Foundation  *(delivered 2026-11-01)*
 
 - Copy assets per the manifest in `docs/metronic-migration.md` §1. Write `VERSION` with checksums. Twasol unchanged-check before and after.
 - Separate Vite admin entry (`resources/css/admin.css`, `resources/js/admin/app.js`), Tailwind-free.
@@ -69,7 +69,7 @@ Outcome: repo initialized in `Gen-I/`; empty remote verified; `main` and `develo
 - Placeholder GEN-I branding (BD-12 pending).
 - Tests: layout renders in `ar`/RTL and `en`/LTR, the menu filters by permission, and no Tailwind in the admin CSS build.
 
-## Phase 3 — Identity, Access and Organization (MOD01 core)  *(drafted — confirm)*
+## Phase 3 — Identity and Access (MOD01 core)  *(admin foundation delivered 2026-11-01; organization/branch/company tables still pending OT-01/OT-02/OT-03 and BD-14)*
 
 - **Decisions needed first:** OT-01, OT-02, OT-03, OT-04; BD-14 (initial role catalogue; a bootstrap `system-administrator` role is enough to start).
 - `users` extensions, plus organizations, branches, departments, companies, company_members, addresses, consents (per S2 §9, MySQL-adapted).
@@ -78,7 +78,7 @@ Outcome: repo initialized in `Gen-I/`; empty remote verified; `main` and `develo
 - API: `/api/v1/auth/*`, `/api/v1/me`, consents.
 - Tests: the authorization matrix and cross-scope denial (N01).
 
-## Phase 4 — Shared Platform Services and UI Kit  *(drafted — confirm)*
+## Phase 4 — Shared Platform Services and UI Kit  *(delivered 2026-11-01, except Idempotency-Key middleware — added with the first mutating public endpoint)*
 
 - `SettingsService` + settings admin page (general, localization, theme).
 - In-house `DataTableService` (server-side paging/search/sort/filter on allow-listed columns) + `<x-admin.datatable>` + `datatable.js`.
@@ -110,3 +110,20 @@ Admin workspaces (MOD08) are delivered inside each module phase, not as a separa
 ## Schedule note
 
 The S3 agile plan baselines Sprint 1 at 2026-11-01 → 2026-11-12 with PostgreSQL, Docker and CI in task S1-D1-01. Approved decisions TD-01/TD-02 change that stack, so the S3 task list and dates need a rebaseline by the product owner. This roadmap orders work but **does not commit dates**.
+
+## Foundation delivery (2026-11-01) — as built
+
+Delivered on `develop` in one authorised execution pass (owner instruction "GEN-I — Full Backend Foundation Implementation"):
+
+| Area | Delivered |
+|---|---|
+| Metronic | 61 files / 21 MB copied to `public/assets/admin/` with `VERSION` + sha256 manifest; placeholder GEN-I brand files; Arabic font self-hosted |
+| Layout | `admin.layouts.app/auth/error`, head/header/sidebar/footer/scripts partials, `<x-admin.*>` components, config-driven sidebar (`config/admin.php`) |
+| Localization | ar (default, RTL) + en (LTR); session + user preference; translated UI, validation, auth, API errors |
+| Auth | Admin session login (throttled, remember-me, inactive lock-out, session regeneration), logout, `php artisan app:create-admin` |
+| RBAC | Spatie; 12 foundation permissions; roles super-admin / admin / manager / staff (placeholders pending BD-14); escalation and last-super-admin guards |
+| Modules | Users, roles, settings, profile, notifications, audit log, dashboard |
+| API | `POST/DELETE /api/v1/auth/token`, `GET /api/v1/user`, JSON error envelope, rate limits |
+| Quality | 96 automated tests on SQLite and on MySQL `geni_testing`; Pint; 42 headless-Chrome checks (login → CRUD → theme → locale → responsive → logout) |
+
+Still open before business modules: OT-01 (public UUIDs — the API currently exposes the numeric user id), OT-02/OT-03 (organization/branch/company scope), OT-06 (SPA vs token auth for React), OT-07 (CI), BD-14 (real staff role catalogue), BD-12 (brand assets).

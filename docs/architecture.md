@@ -186,3 +186,14 @@ These modules are not designed in detail until BD-07 and OT-10 are decided. Cons
 | GIN / tsvector lexical search | InnoDB FULLTEXT | Arabic tokenization to be validated in MOD06 |
 | `uuid` PK everywhere | *Proposed* bigint PK + public UUID (OT-01) | Public UUIDs keep IDs non-guessable in the API |
 | Python agents SDK | *Proposed* Laravel AI gateway (OT-10) | Decision pending |
+
+## 14. As built (foundation, 2026-11-01)
+
+- **Routing:** `routes/web.php` (root → `/admin`), `routes/admin.php` (registered in `bootstrap/app.php` → `withRouting(then:)` with `web` middleware, `/admin` prefix, `admin.` names), `routes/api.php` (`/api/v1`, `api.v1.` names).
+- **Middleware:** `AssignRequestId` (global), `SetLocale` (web) and `SetApiLocale` (api) — both placed before authentication in the priority list so auth/throttle errors are translated; `admin.access` (`EnsureUserCanAccessAdmin`: active + `dashboard.view`); `active` (`EnsureTokenUserIsActive`); `auth.session` on admin routes so password changes sign out other sessions.
+- **Separate auth behaviour:** Sanctum `guard` is set to `[]` — the admin web session never authenticates `/api/v1`; the API accepts bearer tokens only (revisit with OT-06).
+- **Services:** `Services/Admin/{UserService, RoleService, PrivilegeGuard}`, `Services/Settings/SettingsService` (singleton, cached in the default cache store, flushed on update), `Services/Audit/AuditLogger` (redacts password/token/secret keys).
+- **Support:** `Support/DataTable` (server-side DataTables protocol with allow-listed search/sort, capped page size), `Support/AdminMenu`, `Support/Locale`, `Support/helpers.php` (`settings()`, `format_date()`, `format_datetime()` with RTL isolation).
+- **Authorization:** `UserPolicy`, `RolePolicy` + Spatie permission gates. There is **no** `Gate::before` bypass: `super-admin` simply holds every permission (seeder re-syncs it). Privilege rules: grant/remove only roles/permissions you hold; no self role changes, self deactivation or self deletion; only super admins manage super admins; the last active super admin cannot be deactivated, deleted or demoted; protected roles cannot be edited or deleted; roles in use cannot be deleted.
+- **Admin front-end:** Metronic bundles + `resources/js/admin/*` (Vite entry `resources/js/admin/app.js`): `data-geni-ajax-form`, `data-geni-action` (+ `data-geni-confirm`), `<x-admin.datatable>`, Select2 AJAX (`data-geni-select2-ajax`), toastr for results, SweetAlert2 for confirmations.
+- **Errors:** `resources/views/errors/*` use `admin.layouts.error`, which needs no session, CSRF token or Vite manifest.

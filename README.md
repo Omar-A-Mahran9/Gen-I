@@ -1,58 +1,113 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# GEN-I Backend
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Laravel 13 backend for GEN-I: the **Metronic 8.2 admin dashboard** (Arabic RTL / English LTR) and the versioned REST API (`/api/v1`).
+The public React website is a separate application.
 
-## About Laravel
+| | |
+|---|---|
+| Stack | PHP 8.3 · Laravel 13 · MySQL 8.4 · Sanctum · Spatie Permission · Metronic 8.2.0 (Bootstrap 5.3) · Vite |
+| Admin | `/admin` (session login) |
+| API | `/api/v1` (Sanctum bearer tokens) |
+| Docs | [`docs/`](docs/) — architecture, decisions, database, API, Metronic migration, roadmap |
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Requirements
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- PHP 8.3 with `pdo_mysql`, `mbstring`, `intl`, `gd`, `zip`, `bcmath`
+- Composer 2.x
+- MySQL 8.4 (this team uses Homebrew `mysql@8.4` on port **3307**)
+- Node.js 20+ for building the admin assets
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+## First-time setup
 
 ```bash
-composer require laravel/boost --dev
+# 1. Dependencies
+composer install
+npm install
 
-php artisan boost:install
+# 2. Environment
+cp .env.example .env
+php artisan key:generate
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+### 3. MySQL
 
-## Contributing
+Start your local server (Homebrew example, current session only):
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```bash
+brew services run mysql@8.4
+```
 
-## Code of Conduct
+Create the two databases and a dedicated, least-privilege user (run once as the MySQL admin user; choose your own strong password):
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```sql
+CREATE DATABASE geni         CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE geni_testing CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'geni'@'127.0.0.1' IDENTIFIED BY '<strong-password>';
+GRANT ALL PRIVILEGES ON `geni`.*         TO 'geni'@'127.0.0.1';
+GRANT ALL PRIVILEGES ON `geni_testing`.* TO 'geni'@'127.0.0.1';
+```
 
-## Security Vulnerabilities
+Then set `DB_PASSWORD` in `.env` (never commit it). The defaults in `.env.example` already point to `127.0.0.1:3307`, database `geni`, user `geni`.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### 4. Database schema, roles and storage link
 
-## License
+```bash
+php artisan migrate
+php artisan db:seed          # roles & permissions only — safe to re-run, creates no users
+php artisan storage:link     # public URLs for uploaded branding files
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### 5. Create the first administrator
+
+```bash
+php artisan app:create-admin
+```
+
+You are prompted for name, email and password (input hidden; at least 10 characters with upper- and lower-case letters and a number). The account receives the protected **super-admin** role. No default or demo credentials exist.
+
+### 6. Build the admin assets
+
+```bash
+npx vite build        # or: npm run build (npm ≥ 7)
+```
+
+> The repository's `.npmrc` sets `ignore-scripts=true`. With npm 6 this also blocks `npm run build`, which then exits silently — use `npx vite build` or upgrade npm.
+
+### 7. Run
+
+```bash
+php artisan serve
+```
+
+Open **http://localhost:8000** → you are redirected to **http://localhost:8000/admin/login**. Sign in with the account from step 5 to reach the dashboard at **http://localhost:8000/admin**.
+
+For live asset rebuilding during development run `npx vite` in a second terminal.
+
+## Tests and quality checks
+
+```bash
+php artisan test                     # fast suite on in-memory SQLite
+composer test:mysql                  # same suite on MySQL (geni_testing)
+vendor/bin/pint --test               # code style
+composer validate && composer audit
+```
+
+`tests/TestCase.php` refuses to run against any database other than `:memory:` or one ending in `_testing`, so the development database can never be wiped by tests.
+
+## What is included
+
+- Metronic 8.2.0 admin layout (header, permission-aware sidebar, toolbar/breadcrumbs, footer), light/dark/system theme, Arabic RTL default + English LTR, language switcher.
+- Secure admin login (rate-limited, session regeneration, remember-me, inactive-account lock-out), logout.
+- Users: server-side DataTable (search, filters, sorting, paging), create/edit/view, roles, activate/deactivate, admin password reset, delete — with privilege-escalation and last-super-admin protection.
+- Roles & permissions (Spatie): grouped permission editor, protected super-admin role.
+- Dashboard with live counts, recent activity and sign-ins, system status — no sample business data.
+- Settings (native `settings` table + cached `SettingsService`): name, contacts, logos/favicon uploads, languages, theme, timezone and formats.
+- Profile (name, email with password confirmation, language, password change).
+- Database notifications (dropdown, list, mark read / all read) and an append-only audit log.
+- API foundation: token issue/revoke, current user, consistent JSON error envelope, rate limiting, `Accept-Language`.
+
+See [`docs/implementation-roadmap.md`](docs/implementation-roadmap.md) for what comes next.
+
+## Confidential documents
+
+`docs/source/` holds confidential GEN-I source documents and is git-ignored. Never commit it.

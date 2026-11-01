@@ -44,6 +44,29 @@ This repository is the **Laravel 13 backend**: a Metronic admin dashboard plus a
 - Admin UI: Metronic 8.2.0 static bundles live in `public/assets/admin/`. Page plugins load only on the pages that use them. Load no CDN scripts globally. **Never load Tailwind on admin pages.** Tailwind (`resources/css/app.css`) is for non-admin pages only.
 - Before each phase commit, `php artisan test` and `composer test:mysql` must both pass, and Pint must be clean.
 
+## Admin foundation conventions (as built)
+- Routes:
+  - Admin routes live in `routes/admin.php`, registered with the `/admin` prefix and `admin.` names.
+  - API routes live in `routes/api.php`, under `/api/v1` with `api.v1.` names.
+  - Protected admin routes use the `auth`, `auth.session` and `admin.access` middleware.
+- Sidebar: add items to `config/admin.php` → `menu`, each with a translation key, icon, route, `active` patterns and permission. Never hard-code items in Blade.
+- Permissions: add them to `config/admin.php` → `permissions` as `<group>.<action>`, then run `php artisan db:seed`. The seeder is idempotent.
+- Pages extend `admin.layouts.app` and define:
+  - `@section('title')`,
+  - `@section('toolbar')` containing `<x-admin.toolbar>`,
+  - `@section('content')`.
+- Pages reuse the `<x-admin.*>` components: card, button, alert, modal, empty-state, datatable, plugins, and `form.*` (input, select, textarea, switch, checkbox, radio-group, image-upload).
+- Page plugins load through `<x-admin.plugins :use="['datatables']" />`, as declared in `config/admin.plugins`.
+- Forms:
+  - Mark forms `data-geni-ajax-form`.
+  - One-click actions use `data-geni-action` with `data-geni-method`, plus optional `data-geni-confirm`, `data-geni-table` and `data-geni-reload`.
+  - Controllers return `$this->success($request, $message, $redirect)`, so the same endpoint serves AJAX and classic posts.
+- Tables: list endpoints return `App\Support\DataTable::of(...)->searchable()->sortable()->filter()->map()->toResponse()` for JSON requests. Escape every cell (`e()` or Blade partials).
+- Never mix inline `@php(...)` with `@php … @endphp` blocks in one Blade file; the compiler mis-pairs them.
+- Every user-facing string goes in `lang/{ar,en}/admin.php`. Keep the two files key-for-key identical.
+- Build assets with `npx vite build`. The repo's `.npmrc` has `ignore-scripts=true`, which blocks `npm run build` on npm 6.
+- First admin: `php artisan app:create-admin`. Never seed users or credentials.
+
 <laravel-boost-guidelines>
 === foundation rules ===
 

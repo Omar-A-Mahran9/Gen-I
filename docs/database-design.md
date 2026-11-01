@@ -143,3 +143,16 @@ Before writing migrations for a module, produce a short review in the module's P
 - Retention jobs follow `retention_policies` once BD-13 is approved.
 - Deletion propagates to search/derived indexes (S2).
 - Backups and restore drills belong to MOD11.
+
+## 8. Implemented foundation schema (2026-11-01)
+
+| Table | Purpose | Notes |
+|---|---|---|
+| `users` (+ `is_active`, `locale`, `last_login_at`, `last_login_ip`) | Unified staff/customer principals | Indexes on `is_active`, `last_login_at`; users are hard-deleted (audit rows keep `user_id = NULL`) |
+| `roles`, `permissions`, `model_has_roles`, `model_has_permissions`, `role_has_permissions` | Spatie RBAC | Default bigint keys, teams disabled |
+| `personal_access_tokens` | Sanctum tokens | — |
+| `notifications` | Laravel database notifications (in-app) | Payload stores translation keys, not rendered text |
+| `settings` | `key` (unique) / `value` / `type` / `group` | Read through `SettingsService`; never stores secrets |
+| `audit_logs` | Append-only admin/auth events: `user_id` (nullOnDelete), `event`, nullable morph `auditable`, `properties` JSON (secrets redacted), `ip_address`, `user_agent`, `request_id`, `created_at` | Indexes (`event`,`created_at`), (`created_at`), morph index. **Deviation DV-16:** named `audit_logs` (S2: `audit_events`) and created now as the minimal foundation; extend toward S2's audit model in MOD01 completion |
+
+Seeding: `RolesAndPermissionsSeeder` (via `db:seed`) creates the 12 foundation permissions and 4 default roles, is idempotent, keeps UI changes to existing roles, and always re-syncs `super-admin` to all permissions. No user is seeded; the first administrator is created with `php artisan app:create-admin`.

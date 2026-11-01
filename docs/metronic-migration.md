@@ -141,3 +141,12 @@ return [
 ## 8. Licensing note
 
 The owner directed that licence confirmation is not blocking (TD-05). The ThemeForest licence terms for using Metronic in GEN-I remain the owner's responsibility. This is recorded here for traceability only.
+
+## 9. As built (2026-11-01)
+
+- Copied with a scripted allow-list (61 files, 21 MB): core CSS (LTR + RTL), `scripts.bundle.js`, global plugins (CSS LTR/RTL + JS) and all four icon-font folders, `plugins/custom/datatables`, media (`auth` 404/500 light+dark, `bg4` pair, `avatars/blank.png`, `svg/blank-image*`, one empty-state illustration pair), and IBM Plex Sans Arabic (OFL) from the Twasol backup's font folder. The Twasol tree was verified unchanged (`git status` clean) before and after.
+- Not copied: editors (TinyMCE/CKEditor), form repeater, fslightbox, flags (the language switcher uses text badges, avoiding a market assumption), Twasol's DataTables translation JSON (not valid JSON — it contained `__()` calls); DataTables strings come from `lang/*/admin.php`.
+- This Metronic build is a light, white-sidebar demo variant (no `dark-sidebar` layout CSS); the GEN-I layout follows the structural classes that exist in this bundle.
+- Metronic hard-codes `html, body { font-family: Inter… }`; the Arabic font is therefore applied with an `html[lang=ar], html[lang=ar] body` rule plus the Bootstrap font variables.
+- Brand placeholders live in `public/assets/admin/brand/` (text wordmark + "G" icon, explicitly not official assets) and are replaced from **Settings → Branding** (stored on the `public` disk under `branding/`; PNG/JPG/WebP logos, PNG/ICO favicon; SVG rejected).
+- Verified in headless Chrome (desktop, laptop, tablet, mobile; light/dark; ar/en): no horizontal overflow, mobile drawer works, no asset 404s, KeenIcons load, and the admin CSS contains no Tailwind rules.
