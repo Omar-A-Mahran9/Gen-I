@@ -2,6 +2,8 @@
 
 namespace App\Services\Admin;
 
+use App\Exceptions\AdminActionException;
+use App\Models\CompanyMember;
 use App\Models\User;
 use App\Notifications\AccountUpdated;
 use App\Services\Audit\AuditLogger;
@@ -34,6 +36,10 @@ class UserService
                 'locale' => $data['locale'] ?? null,
             ]);
 
+            $user->forceFill([
+                'organization_id' => $actor->isSuperAdmin() ? ($data['organization_id'] ?? null) : $actor->organization_id,
+            ])->save();
+
             if ($roles !== []) {
                 $this->guard->assertCanAssignRoles($actor, $user, $roles);
                 $user->syncRoles($roles);
@@ -63,6 +69,16 @@ class UserService
                 'email' => $data['email'],
                 'locale' => $data['locale'] ?? $user->locale,
             ]);
+
+            if ($actor->isSuperAdmin() && array_key_exists('organization_id', $data)) {
+                $newOrganization = $data['organization_id'] === null ? null : (int) $data['organization_id'];
+
+                if ($newOrganization !== $user->organization_id && CompanyMember::query()->where('user_id', $user->id)->exists()) {
+                    throw new AdminActionException(__('admin.errors.user_has_company_memberships'));
+                }
+
+                $user->organization_id = $newOrganization;
+            }
 
             $changes = array_keys($user->getDirty());
             $user->save();

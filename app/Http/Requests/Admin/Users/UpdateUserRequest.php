@@ -26,6 +26,10 @@ class UpdateUserRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique(User::class, 'email')->ignore($user->id)],
             'locale' => ['nullable', 'string', Rule::in(app(Locale::class)->available())],
+            // Only super administrators assign organizations; other actors' users stay in their organization.
+            'organization_id' => $this->user()->isSuperAdmin()
+                ? ['nullable', 'integer', Rule::exists('organizations', 'id')]
+                : ['prohibited'],
             'roles' => ['nullable', 'array'],
             'roles.*' => ['string', 'distinct', Rule::exists('roles', 'name')->where('guard_name', 'web')],
         ];

@@ -68,7 +68,20 @@ class PrivilegeGuard
      */
     public function canManageUser(User $actor, User $target): bool
     {
-        return ! $target->isSuperAdmin() || $actor->isSuperAdmin();
+        if ($actor->isSuperAdmin()) {
+            return true;
+        }
+
+        return ! $target->isSuperAdmin() && $this->sameOrganization($actor, $target);
+    }
+
+    /**
+     * Non-super administrators only see and manage users of their own organization
+     * (users without an organization only see other users without one).
+     */
+    public function sameOrganization(User $actor, User $target): bool
+    {
+        return $actor->organization_id === $target->organization_id;
     }
 
     public function activeSuperAdminCount(): int

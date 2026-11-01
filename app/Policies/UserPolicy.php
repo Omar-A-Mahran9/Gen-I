@@ -16,7 +16,7 @@ class UserPolicy
 
     public function view(User $actor, User $user): bool
     {
-        return $actor->can('users.view');
+        return $actor->can('users.view') && ($actor->isSuperAdmin() || $this->guard->sameOrganization($actor, $user));
     }
 
     public function create(User $actor): bool

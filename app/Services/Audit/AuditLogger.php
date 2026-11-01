@@ -16,7 +16,7 @@ class AuditLogger
 {
     protected const REDACTED = '[redacted]';
 
-    protected const SENSITIVE_KEY_PATTERN = '/pass(word)?|token|secret|remember|api[_-]?key|authorization|cookie/i';
+    protected const SENSITIVE_KEY_PATTERN = '/pass(word)?|token|secret|api[_-]?key|authorization|cookie/i';
 
     /**
      * @param  array<string, mixed>  $properties
