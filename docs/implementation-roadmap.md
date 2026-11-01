@@ -31,7 +31,7 @@
 
 ## Phase 1 — Git and Project Foundation  *(executed 2026-11-01 — awaiting owner review)*
 
-Outcome: repo initialized in `Gen-I/`; empty remote verified; `main` and `develop` pushed; Sanctum 4.3.3, Spatie Permission 8.3.2 and Boost 2.10.4 installed; `.env.example` set to MySQL. **Not done:** no MySQL server was started and no database created (see OT-12, pending approval).
+Outcome: repo initialized in `Gen-I/`; empty remote verified; `main` and `develop` pushed; Sanctum 4.3.3, Spatie Permission 8.3.2 and Boost 2.10.4 installed; `.env.example` set to MySQL. MySQL setup (OT-12 → TD-21/TD-22) approved and completed: `geni` + `geni_testing` on Homebrew MySQL 8.4 port 3307, dedicated `geni` user, migrations applied to `geni`, test suite green on SQLite and on MySQL `geni_testing`.
 
 
 1. **Repository**
@@ -49,9 +49,9 @@ Outcome: repo initialized in `Gen-I/`; empty remote verified; `main` and `develo
 4. **Tooling**
    - Install Laravel Boost (dev) (TD-17), then re-read the generated guidelines. Boost only rewrites its own `<laravel-boost-guidelines>` block; the GEN-I section in `CLAUDE.md` must survive. Verify this.
 5. **Environment**
-   - `.env.example`: `APP_NAME="GEN-I"`, `APP_LOCALE=ar`, `APP_FALLBACK_LOCALE=en`, `DB_CONNECTION=mysql`, `DB_PORT=3306` (the standard default; local Homebrew uses 3307, per the comment in the file), `DB_DATABASE=geni`, **empty** credentials.
-   - Local `.env`: only `APP_NAME` and `APP_LOCALE` were updated; it stays on SQLite until OT-12 is approved (never committed).
-   - ~~Create the local `geni` and `geni_testing` databases~~ → deferred to OT-12 approval.
+   - `.env.example`: `APP_NAME="GEN-I"`, `APP_LOCALE=ar`, `APP_FALLBACK_LOCALE=en`, `DB_CONNECTION=mysql`, `DB_PORT=3307`, `DB_DATABASE=geni`, `DB_USERNAME=geni`, **empty** password.
+   - Local `.env` (never committed): `APP_NAME`, `APP_LOCALE=ar`, MySQL `geni` on 127.0.0.1:3307 as user `geni`.
+   - Local databases `geni` and `geni_testing` created (TD-21).
 6. **Dependencies (verified 2026-11-01, to be re-checked at install time)**
    - `laravel/sanctum` via `php artisan install:api` (creates `routes/api.php`; prefix set to `api/v1`).
    - `spatie/laravel-permission` (publish config + migration; adjust key types per OT-01).

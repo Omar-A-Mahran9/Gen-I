@@ -29,7 +29,8 @@ This repository is the **Laravel 13 backend**: a Metronic admin dashboard plus a
 
 ## Stack and conventions
 - PHP 8.3 (`php` on PATH). Composer: use `/opt/homebrew/bin/composer` (2.11.x). The interactive shell alias `composer` points at a missing `~/composer.phar`.
-- MySQL 8.4 (local Homebrew `mysql@8.4`, configured in `/opt/homebrew/etc/my.cnf` on port 3307). Don't change the server configuration or other databases on it. SQLite (`:memory:`) is used by the default test suite.
+- MySQL 8.4 (local Homebrew `mysql@8.4` on 127.0.0.1:3307; start it per session with `brew services run mysql@8.4`). The app uses the least-privilege `geni` user, which can access only the databases `geni` and `geni_testing`. Never use root in the app, never change the server config, and never touch other projects' databases on that server. Never print the DB password.
+- Tests: `php artisan test` uses SQLite `:memory:`. `composer test:mysql` uses MySQL `geni_testing`. Never run `migrate:fresh` or other destructive commands against anything except `geni`/`geni_testing`.
 - Traditional MVC:
   - Controllers are thin, split into `Admin\*` and `Api\V1\*`.
   - Validation lives in Form Requests.
@@ -41,7 +42,7 @@ This repository is the **Laravel 13 backend**: a Metronic admin dashboard plus a
 - Money uses DECIMAL and string amounts in the API. Never use floats.
 - Locales: Arabic `ar` is the default and RTL; English `en` is LTR. Admin supports light and dark themes.
 - Admin UI: Metronic 8.2.0 static bundles live in `public/assets/admin/`. Page plugins load only on the pages that use them. Load no CDN scripts globally. **Never load Tailwind on admin pages.** Tailwind (`resources/css/app.css`) is for non-admin pages only.
-- Tests: `php artisan test` must pass, and Pint must be clean, before each phase commit.
+- Before each phase commit, `php artisan test` and `composer test:mysql` must both pass, and Pint must be clean.
 
 <laravel-boost-guidelines>
 === foundation rules ===

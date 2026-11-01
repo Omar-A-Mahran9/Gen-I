@@ -155,12 +155,12 @@ There are no global CDN scripts. Details are in `metronic-migration.md`.
 |---|---|---|
 | Unit (services, value objects, state machines, money) | PHPUnit 12 | none / SQLite in-memory |
 | Feature: admin routes, API endpoints, policies | PHPUnit + `RefreshDatabase` | SQLite in-memory where SQL is portable |
-| Integration: locking, generated columns, FULLTEXT, concurrency | PHPUnit `@group mysql` | Dedicated MySQL test database |
+| Integration: locking, generated columns, FULLTEXT, concurrency | `composer test:mysql` (`phpunit.mysql.xml`) | MySQL `geni_testing` |
 | Authorization matrix | Data-provider tests per role × action × scope | as above |
 | API contract | Response-shape assertions per `api-contracts.md` | as above |
 | Style | Laravel Pint | — |
 
-Each phase must pass `php artisan test` and `pint --test` before it is committed. CI is decision OT-07.
+Each phase must pass `php artisan test`, `composer test:mysql` and `pint --test` before it is committed. `Tests\TestCase` refuses to run against any database other than `:memory:` or `*_testing` (TD-22). CI is decision OT-07.
 
 ## 11. Observability (N10)
 

@@ -30,6 +30,8 @@ Approved technical decisions override the technology proposals in the blueprint 
 | TD-17 | **Laravel Boost** dev dependency, as required by `CLAUDE.md`. | 2026-11-01 | Installed 2.10.4 in Phase 1 (guidelines, skills, MCP for Claude Code + Codex). |
 | TD-18 | Confidential source documents are copied to `docs/source/`, which is git-ignored and never committed or pushed. | 2026-11-01 | Resolves OT-09. |
 | TD-19 | `CLAUDE.md` and `AGENTS.md` are kept identical. GEN-I rules take precedence over generic Boost guidelines and skills. | 2026-11-01 | — |
+| TD-21 | Local MySQL: the existing Homebrew `mysql@8.4` 8.4.11 on 127.0.0.1:3307 is started per session (`brew services run`, no login auto-start); the server config is unchanged. Databases `geni` and `geni_testing` (utf8mb4 / utf8mb4_unicode_ci). App user `geni`@`127.0.0.1` has `ALL PRIVILEGES` on those two databases only (no global privileges, no GRANT OPTION). The password lives only in the local `.env`. Root is used only for the one-time setup, never by the app. | 2026-11-01 | Isolation verified: `geni` is denied on other databases and on `mysql.user`. |
+| TD-22 | Test databases: `php artisan test` uses SQLite `:memory:`. `composer test:mysql` (`phpunit.mysql.xml`) uses MySQL `geni_testing`. `Tests\TestCase` refuses to run against any database not named `:memory:` or `*_testing`. | 2026-11-01 | Protects `geni` from `RefreshDatabase`. |
 | TD-20 | The 102 S2 tables are the primary database reference but are not created in bulk. Each module reviews its tables first, and deviations are recorded in `database-design.md` §4a. | 2026-11-01 | — |
 
 ## B. Open technical decisions (need your approval)
@@ -43,7 +45,7 @@ Approved technical decisions override the technology proposals in the blueprint 
 | OT-05 | Bilingual content storage. | **Proposed:** paired `*_ar` / `*_en` columns for the fixed two-language scope (no extra package, indexable, FULLTEXT-friendly). Alternative: JSON columns. | Phase 5 (catalog) |
 | OT-06 | API authentication mode for the separate React frontend. | Sanctum **SPA cookie auth** if it shares the top-level domain, **personal access tokens** otherwise. Depends on hosting/domains (BD-11). | Customer-facing authenticated API |
 | OT-07 | Docker, CI and branch protection. S3 task S1-D1-01 assumes Docker + CI. | Decide the CI provider (e.g. GitHub Actions) and whether a Docker local stack is required. | Later (optional) |
-| OT-12 | Local MySQL for GEN-I. Findings 2026-11-01: Homebrew `mysql@8.4` 8.4.11 is installed and configured on 127.0.0.1:3307 (`/opt/homebrew/etc/my.cnf`, shared with other projects) but **not running**. XAMPP MariaDB 10.4 (port 3306) is also installed but not running, and is **not MySQL**. No `geni*` database exists. | **Proposed:** start the existing Homebrew `mysql@8.4` (`brew services run`, which doesn't register auto-start), create **new** `geni` and `geni_testing` databases plus a dedicated `geni` user limited to those two databases. Leave the server config and other databases untouched. Then switch the local `.env` to MySQL on 3307. | Phase 2 / 3 migrations on MySQL |
+| OT-12 | ~~Local MySQL for GEN-I~~ | **Resolved → TD-21.** | — |
 | OT-08 | Timezone and currency defaults. S2 N12 mentions **EGP**. | Proposed `APP_TIMEZONE=UTC` storage, with display timezone and currency held in settings. GEN-I to confirm the market (BD-04). | Phase 3 |
 | OT-09 | ~~Source documents location~~ | **Resolved → TD-18.** | — |
 | OT-10 | AI runtime inside a Laravel monolith. S2 references Python OpenAI Agents SDK and Ollama. | **Proposed:** a Laravel `AiGateway` interface with provider adapters via the HTTP client. Provider, models and online/offline policy stay open (BD-07). No implementation before approval. | MOD06/07 phases |
@@ -74,3 +76,4 @@ Approved technical decisions override the technology proposals in the blueprint 
 |---|---|
 | 2026-11-01 | Register created from the audit and the owner's approved architecture decisions. |
 | 2026-11-01 | Phase 1: TD-10/11/17 installed; TD-18–TD-20 added; OT-09 resolved; OT-12 added. |
+| 2026-11-01 | OT-12 approved and executed → TD-21, TD-22. |
