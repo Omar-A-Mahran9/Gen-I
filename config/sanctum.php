@@ -37,7 +37,10 @@ return [
     |
     */
 
-    'guard' => ['web'],
+    // GEN-I: the API accepts bearer tokens only. The admin dashboard's web session
+    // must not authenticate /api/v1 requests (separate auth behaviour). If the
+    // future React app uses SPA cookie auth (decision OT-06), revisit this.
+    'guard' => [],
 
     /*
     |--------------------------------------------------------------------------
