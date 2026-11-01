@@ -65,10 +65,11 @@ class FoundationSchemaTest extends TestCase
 
         $this->seed(RolesAndPermissionsSeeder::class);
 
-        $this->assertSame(12, Permission::count());
+        $expected = array_sum(array_map('count', config('admin.permissions')));
+        $this->assertSame($expected, Permission::count());
         $this->assertSame(4, Role::count());
         $this->assertTrue(Role::findByName('staff')->hasPermissionTo('audit.view'));
-        $this->assertSame(12, Role::findByName('super-admin')->permissions()->count());
+        $this->assertSame($expected, Role::findByName('super-admin')->permissions()->count());
         $this->assertSame(0, User::count());
     }
 

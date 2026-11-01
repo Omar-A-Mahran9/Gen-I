@@ -18,7 +18,7 @@ class LocalizationTest extends TestCase
             ->assertOk()
             ->assertSee('<html lang="ar" dir="rtl"', false)
             ->assertSee('style.bundle.rtl.css', false)
-            ->assertSee('IBM Plex Sans Arabic', false)
+            ->assertSee('Tajawal', false)
             ->assertSee(__('admin.auth.heading', [], 'ar'));
     }
 
@@ -31,7 +31,7 @@ class LocalizationTest extends TestCase
             ->assertSee('<html lang="en" dir="ltr"', false)
             ->assertSee('assets/admin/css/style.bundle.css', false)
             ->assertDontSee('style.bundle.rtl.css', false)
-            ->assertDontSee('IBM Plex Sans Arabic', false)
+            ->assertDontSee('Tajawal', false)
             ->assertSee('Welcome back');
 
         $this->get(route('admin.locale.switch', 'ar'));

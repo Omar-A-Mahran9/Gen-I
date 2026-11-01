@@ -26,7 +26,8 @@ class DashboardAndAuditTest extends TestCase
             ->assertSee('id="kt_scrolltop"', false)
             ->assertSee('data-kt-element="theme-mode-menu"', false)
             ->assertSee(__('admin.dashboard.welcome', ['name' => 'Dashboard Owner']))
-            ->assertSee(__('admin.dashboard.modules.title'));
+            ->assertSee(__('admin.dashboard.business.title'))
+            ->assertSee('data-geni-business-stat="products"', false);
 
         $this->assertSame(5, $response->viewData('stats')['users']);
         $this->assertSame(4, $response->viewData('stats')['active_users']);
