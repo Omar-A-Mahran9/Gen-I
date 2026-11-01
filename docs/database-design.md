@@ -156,3 +156,22 @@ Before writing migrations for a module, produce a short review in the module's P
 | `audit_logs` | Append-only admin/auth events: `user_id` (nullOnDelete), `event`, nullable morph `auditable`, `properties` JSON (secrets redacted), `ip_address`, `user_agent`, `request_id`, `created_at` | Indexes (`event`,`created_at`), (`created_at`), morph index. **Deviation DV-16:** named `audit_logs` (S2: `audit_events`) and created now as the minimal foundation; extend toward S2's audit model in MOD01 completion |
 
 Seeding: `RolesAndPermissionsSeeder` (via `db:seed`) creates the 12 foundation permissions and 4 default roles, is idempotent, keeps UI changes to existing roles, and always re-syncs `super-admin` to all permissions. No user is seeded; the first administrator is created with `php artisan app:create-admin`.
+
+## 9. Phase 2 deviation register (DV-16 to DV-29)
+
+| # | S2 design | As built | Reason |
+|---|---|---|---|
+| DV-16 | `audit_events` | `audit_logs` (foundation) | Recorded in §8 |
+| DV-17 | `addresses` owned by customer **or** company | Company-owned only (`company_id` required) | The `customers` table is not part of these modules; customer addresses are added with it |
+| DV-18 | `branches`: code, name, address_text, opening_hours, status | + nullable `city`, `phone`, `email`, `latitude`, `longitude` | FR-20 requires store location, contact and directions |
+| DV-19 | `inventory_movements.order_item_id`, `repair_job_id` | Omitted; + `on_hand_after`, `note`, `created_by` | Order/repair tables do not exist yet (FKs are added with those modules); actor and resulting balance are kept for traceability |
+| DV-20 | `price_lists.company_id` (contract lists) | Column kept, rejected by the API and hidden in the UI | Contract pricing is conditional advanced B2B scope (S3) |
+| DV-21 | brands: "unique normalized name" | `name_normalized` column with unique (org, name_normalized) | MySQL needs a stored column to enforce it |
+| DV-22 | products/companies: no explicit uniqueness | unique (org, brand_id, model_code); unique (org, legal_name); unique (org, tax_reference) | Duplicate prevention required by the brief; protects exact-product identity (BR02) |
+| DV-23 | `attribute_defs.label` | + nullable `label_ar` | Arabic-default UI (N12), same pattern as `name_ar` |
+| DV-24 | `policy_versions.approved_by` | + `created_by`, `approved_at`; `prices.created_by` | Independent approval (author ≠ approver) and traceability |
+| DV-25 | "type and product category must match definition" | Category **or ancestor** attributes apply | Lets parent categories define shared specifications |
+| DV-26 | `opening_hours jsonb` "approved schedule" | JSON `{sat…fri: [{open, close}]}`, ≤ 3 intervals/day, empty = closed | Concrete, validatable schema; to confirm with GEN-I |
+| DV-27 | `users.org_id NOT NULL` | `users.organization_id` nullable | Bootstrap super administrators are platform-wide; organization-less non-super users see no business data |
+| DV-28 | `uuid` primary keys | `bigint` (OT-01 still open) | Unchanged convention |
+| DV-29 | — | No `stores` table | S2 defines branches as "stores and service branches" |

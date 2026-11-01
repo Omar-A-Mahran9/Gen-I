@@ -105,6 +105,15 @@ composer validate && composer audit
 - Profile (name, email with password confirmation, language, password change).
 - Database notifications (dropdown, list, mark read / all read) and an append-only audit log.
 - API foundation: token issue/revoke, current user, consistent JSON error envelope, rate limiting, `Accept-Language`.
+- **Business modules (Phase 2)** — admin pages and `/api/v1` endpoints for:
+  - organizations and companies (members, addresses);
+  - branches/stores (hours, location, stock);
+  - the product catalog (categories, brands, products, variants, typed specifications, reviewed images);
+  - policy versions (independent approval);
+  - price lists with effective-dated prices (never overwritten);
+  - inventory with an immutable, idempotent movement ledger.
+
+  See [`docs/business-modules.md`](docs/business-modules.md).
 
 See [`docs/implementation-roadmap.md`](docs/implementation-roadmap.md) for what comes next.
 

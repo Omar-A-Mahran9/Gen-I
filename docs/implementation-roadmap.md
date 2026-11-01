@@ -127,3 +127,14 @@ Delivered on `develop` in one authorised execution pass (owner instruction "GEN-
 | Quality | 96 automated tests on SQLite and on MySQL `geni_testing`; Pint; 42 headless-Chrome checks (login → CRUD → theme → locale → responsive → logout) |
 
 Still open before business modules: OT-01 (public UUIDs — the API currently exposes the numeric user id), OT-02/OT-03 (organization/branch/company scope), OT-06 (SPA vs token auth for React), OT-07 (CI), BD-14 (real staff role catalogue), BD-12 (brand assets).
+
+## Phase 2 — First four business modules (delivered 2026-11-01)
+
+Organizations & companies, branches (stores), product catalog, and policy versions + pricing + inventory are implemented end-to-end (admin + API). Details, rules, the permission matrix and the completion checklist are in `docs/business-modules.md`.
+
+**Next candidates (each gated by its decisions):**
+- MOD03 comparison and store reservations: stock holds, `reserved`, BD-01/BD-03.
+- Promotions and offer content (BD-06).
+- Public read-only catalog/store API for the React site (OT-06, OT-13).
+- MOD04 repairs (BD-05).
+- MOD05 RFQ/quotations (BD-02).

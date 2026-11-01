@@ -107,3 +107,89 @@ Feature tests assert these shapes.
 Every response carries `X-Request-Id`; API responses carry `Content-Language`. Error bodies follow §2 (verified by `tests/Feature/Api/ApiFoundationTest.php`).
 
 Note: `id` is currently the numeric primary key; switch to a public UUID if OT-01 is approved before any public client depends on it.
+
+## 6. Business module endpoints (Phase 2)
+
+All endpoints below require `Authorization: Bearer <token>` (Sanctum), an **active** account, and the listed permission. Rate limit: `api` (60/min per user). Records outside the caller's organization respond **404** (`not_found`), so IDs cannot be probed. Business-rule refusals respond **422** with `error.code = "business_rule_violation"` (or **409** `conflict`). Validation errors use `validation_failed` with `details`.
+
+**List conventions:** `?search=` · `?filter[field]=value` (allow-listed) · `?sort=field` or `?sort=-field` · `?per_page=` (≤ 100). Responses are `{data: [...], links: {...}, meta: {current_page, per_page, total, ...}}`.
+
+| Method & path | Permission | Notes |
+|---|---|---|
+| `GET /organizations` · `GET /organizations/{id}` | organizations.view | filters: status, currency |
+| `POST /organizations` | organizations.create **and** super admin | name, timezone, currency |
+| `PUT /organizations/{id}` · `PATCH /organizations/{id}/status` | organizations.update | status `active\|suspended`; own organization cannot be suspended |
+| `DELETE /organizations/{id}` | organizations.delete + super admin | only when it has no dependent records |
+| `GET\|POST /companies` · `GET\|PUT\|DELETE /companies/{id}` | companies.* | filters: status, organization_id, account_owner_id |
+| `PATCH /companies/{id}/status` | companies.update | pending→verified/suspended, verified→suspended, suspended→verified |
+| `GET\|POST /companies/{id}/members` · `PUT\|DELETE /companies/{id}/members/{member}` | companies.view / update | user must belong to the company's organization |
+| `GET\|POST /companies/{id}/addresses` · `PUT\|DELETE /companies/{id}/addresses/{address}` | companies.view / update | — |
+| `GET\|POST /branches` · `GET\|PUT\|DELETE /branches/{id}` · `PATCH /branches/{id}/status` | branches.* | filters: status, organization_id, city |
+| `GET /branches/{id}/inventory` | branches.view + inventory.view | product availability at the store |
+| `GET\|POST /categories` · `GET\|PUT\|DELETE /categories/{id}` · `PATCH …/status` | catalog.* | filters: status, parent_id, root=1 |
+| `POST /categories/{id}/attributes` · `PUT\|DELETE /categories/{id}/attributes/{attribute}` | catalog.update | typed attribute dictionary |
+| `GET\|POST /brands` · `GET\|PUT\|DELETE /brands/{id}` · `PATCH …/status` | catalog.* | — |
+| `GET\|POST /products` · `GET\|PUT\|DELETE /products/{id}` | catalog.* | filters: status, category_id, brand_id, item_kind; search covers name, model code and SKU |
+| `PATCH /products/{id}/status` | catalog.approve | lifecycle rules in docs/business-modules.md §3 |
+| `GET\|POST /products/{id}/variants` · `PUT\|DELETE /variants/{id}` · `PATCH /variants/{id}/status` | catalog.* | — |
+| `PUT /variants/{id}/specifications` | catalog.update | `{values: [{attribute_id, value, source_reference, verified_at?}]}` replaces the set |
+| `POST /products/{id}/media` (multipart, 30/min) · `PUT\|DELETE /products/{id}/media/{media}` · `GET …/media/{media}/download` | catalog.update (review: catalog.approve) | images are private; download is authenticated; blocked images return 404 |
+| `GET\|POST /policies` · `GET\|PUT\|DELETE /policies/{id}` | policies.view / manage | update/delete drafts only |
+| `POST /policies/{id}/approve` · `POST /policies/{id}/retire` | policies.approve | author cannot approve own draft |
+| `GET\|POST /price-lists` · `GET\|PUT\|DELETE /price-lists/{id}` · `PATCH …/status` | pricing.view / manage | `company_id` is prohibited (conditional scope) |
+| `GET\|POST /price-lists/{id}/prices` · `PUT\|DELETE /prices/{id}` | pricing.view / manage | filter[period]=current\|future\|past; only future prices editable |
+| `GET /inventory` · `GET /inventory/movements` | inventory.view | balance filters: branch_id, variant_id, stock=available\|out; movement filters: branch_id, reason, from, to |
+| `POST /inventory/adjustments` (60/min) | inventory.adjust | optional `Idempotency-Key` header (8–100 chars `[A-Za-z0-9_-:.]`) |
+
+### Examples
+
+Create a branch:
+```http
+POST /api/v1/branches
+Authorization: Bearer 1|…
+Accept-Language: en
+Content-Type: application/json
+
+{"code": "cai-01", "name": "Cairo Festival City", "address_text": "Ring Road, New Cairo", "city": "Cairo",
+ "latitude": 30.0287, "longitude": 31.4086,
+ "opening_hours": {"sat": [{"open": "10:00", "close": "22:00"}], "fri": [{"open": "13:00", "close": "23:00"}]}}
+```
+```json
+201 Created
+{"data": {"id": 7, "organization_id": 1, "code": "CAI-01", "name": "Cairo Festival City", "address_text": "Ring Road, New Cairo",
+  "city": "Cairo", "phone": null, "email": null,
+  "location": {"latitude": 30.0287, "longitude": 31.4086, "directions_url": "https://www.google.com/maps/search/?api=1&query=30.0287000,31.4086000"},
+  "opening_hours": {"sat": [{"open": "10:00", "close": "22:00"}], "sun": [], "mon": [], "tue": [], "wed": [], "thu": [], "fri": [{"open": "13:00", "close": "23:00"}]},
+  "status": "active", "created_at": "2026-11-01T06:12:00Z", "updated_at": "2026-11-01T06:12:00Z"}}
+```
+
+Add a price:
+```http
+POST /api/v1/price-lists/3/prices
+{"variant_id": 41, "unit_price": "52999.99", "min_quantity": 1, "tax_policy_id": 2}
+```
+```json
+201 Created
+{"data": {"id": 90, "price_list_id": 3, "variant": {"id": 41, "sku": "IP16-128-BLK", "name": "128GB Black"}, "min_quantity": 1,
+  "unit_price": {"amount": "52999.99", "currency": "EGP"}, "tax_policy_id": 2,
+  "valid_from": "2026-11-01T06:15:00Z", "valid_to": null, "state": "current", "created_at": "2026-11-01T06:15:00Z"}}
+```
+
+Record a stock receipt (idempotent):
+```http
+POST /api/v1/inventory/adjustments
+Idempotency-Key: rcpt-2026-11-01-0001
+{"branch_id": 7, "variant_id": 41, "quantity": 10, "reason": "receipt"}
+```
+```json
+201 Created   (a replay with the same key and payload → 200 with the same movement; a different payload → 409)
+{"data": {"id": 512, "branch": {"id": 7, "code": "CAI-01"}, "variant": {"id": 41, "sku": "IP16-128-BLK"},
+  "quantity_delta": 10, "on_hand_after": 10, "reason": "receipt", "source_event_id": "manual:rcpt-2026-11-01-0001",
+  "note": null, "created_by": 2, "created_at": "2026-11-01T06:20:00Z"}}
+```
+
+Business-rule refusal:
+```json
+422 Unprocessable Content
+{"error": {"code": "business_rule_violation", "message": "Insufficient stock: only 10 unit(s) on hand.", "request_id": "01JC…"}}
+```

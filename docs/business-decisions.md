@@ -35,6 +35,10 @@ Approved technical decisions override the technology proposals in the blueprint 
 | TD-23 | Foundation implementation authorised and executed in one pass (owner's "Full Backend Foundation Implementation" instruction, 2026-11-01). | 2026-11-01 | See roadmap "Foundation delivery". |
 | TD-24 | OT-04 implemented as recommended: no `Gate::before` bypass; super-admin holds every permission explicitly. | 2026-11-01 | Within TD-23 authorisation. |
 | TD-25 | Sanctum accepts bearer tokens only (`sanctum.guard = []`) so admin sessions never authenticate the API. | 2026-11-01 | Revisit with OT-06. |
+| TD-26 | Phase 2 modules built on S2 §9 tables (organizations, companies, branches, catalog, policy versions, pricing, inventory). Stores = branches. Deviations DV-16…DV-29 in database-design.md. | 2026-11-01 | Owner's "Phase 2: first 4 business modules" instruction |
+| TD-27 | Organization scoping: super administrators are platform-wide; other users see only their organization's business data and users; users without an organization see no business data. Out-of-scope records resolve to 404. | 2026-11-01 | Implements OT-02 (org scope); per-branch/department scope (OT-03) still open |
+| TD-28 | New business permissions are granted only to super-admin by default. | 2026-11-01 | Real role assignments wait for BD-14 |
+| TD-29 | Arabic typography switched to Tajawal (SIL OFL, self-hosted from the official Google Fonts repository). | 2026-11-01 | Owner instruction |
 | TD-20 | The 102 S2 tables are the primary database reference but are not created in bulk. Each module reviews its tables first, and deviations are recorded in `database-design.md` §4a. | 2026-11-01 | — |
 
 ## B. Open technical decisions (need your approval)
@@ -48,6 +52,8 @@ Approved technical decisions override the technology proposals in the blueprint 
 | OT-05 | Bilingual content storage. | **Proposed:** paired `*_ar` / `*_en` columns for the fixed two-language scope (no extra package, indexable, FULLTEXT-friendly). Alternative: JSON columns. | Phase 5 (catalog) |
 | OT-06 | API authentication mode for the separate React frontend. | Sanctum **SPA cookie auth** if it shares the top-level domain, **personal access tokens** otherwise. Depends on hosting/domains (BD-11). | Customer-facing authenticated API |
 | OT-07 | Docker, CI and branch protection. S3 task S1-D1-01 assumes Docker + CI. | Decide the CI provider (e.g. GitHub Actions) and whether a Docker local stack is required. | Later (optional) |
+| OT-13 | Malware scanning for uploads (S2 media_assets.scan_status). | **Proposed:** integrate a scanner (e.g. ClamAV) before public image delivery; until then staff review sets `scan_status` and files stay private. | Public catalog API |
+| OT-14 | Opening-hours JSON schema (DV-26) and stock source mode (manual vs ERP sync, BD-03). | Confirm with GEN-I operations. | MOD03 reservations |
 | OT-12 | ~~Local MySQL for GEN-I~~ | **Resolved → TD-21.** | — |
 | OT-08 | Timezone and currency defaults. S2 N12 mentions **EGP**. | Proposed `APP_TIMEZONE=UTC` storage, with display timezone and currency held in settings. GEN-I to confirm the market (BD-04). | Phase 3 |
 | OT-09 | ~~Source documents location~~ | **Resolved → TD-18.** | — |
@@ -80,4 +86,5 @@ Approved technical decisions override the technology proposals in the blueprint 
 | 2026-11-01 | Register created from the audit and the owner's approved architecture decisions. |
 | 2026-11-01 | Phase 1: TD-10/11/17 installed; TD-18–TD-20 added; OT-09 resolved; OT-12 added. |
 | 2026-11-01 | OT-12 approved and executed → TD-21, TD-22. |
+| 2026-11-01 | Phase 2 business modules delivered → TD-26…TD-29, OT-13, OT-14. |
 | 2026-11-01 | Foundation delivered → TD-23–TD-25; DV-16 (`audit_logs`) recorded in database-design.md. Default roles admin/manager/staff are placeholders pending BD-14. |

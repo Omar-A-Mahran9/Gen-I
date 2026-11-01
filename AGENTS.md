@@ -67,6 +67,14 @@ This repository is the **Laravel 13 backend**: a Metronic admin dashboard plus a
 - Build assets with `npx vite build`. The repo's `.npmrc` has `ignore-scripts=true`, which blocks `npm run build` on npm 6.
 - First admin: `php artisan app:create-admin`. Never seed users or credentials.
 
+## Business modules conventions (Phase 2)
+- Read `docs/business-modules.md` first. The schema follows the S2 blueprint §9; every deviation goes in `docs/database-design.md` §9.
+- Organization-scoped models use `App\Models\Concerns\BelongsToOrganization`: the `forUser()` scope plus scoped route binding (out of scope → 404). Policies extend `OrganizationScopedPolicy`.
+- Create/update requests extend `App\Http\Requests\OrganizationScopedRequest`. Super admins choose the organization; others are bound to theirs. Use `existsInOrganization()` for every foreign key.
+- Business logic, transactions and audit live in `App\Services\Business\*`, shared by `Admin\Business\*` and `Api\V1\*` controllers. Business-rule refusals throw `AdminActionException` (422, or 409 via `::conflict()`).
+- Stock changes only go through `InventoryService::adjust()`: row lock, immutable movement, idempotency key. Prices only through `PricingService`: history is never overwritten.
+- New business permissions are seeded for super-admin only. Never grant them to other roles without the approved role catalogue (BD-14).
+
 <laravel-boost-guidelines>
 === foundation rules ===
 
