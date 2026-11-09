@@ -15,8 +15,8 @@ class ApiFoundationTest extends TestCase
     {
         $this->getJson('/api/v1/user')
             ->assertUnauthorized()
-            ->assertJsonPath('error.code', 'unauthenticated')
-            ->assertJsonStructure(['error' => ['code', 'message', 'request_id']])
+            ->assertJsonPath('code', 'unauthenticated')
+            ->assertJsonStructure(['code', 'message', 'request_id'])
             ->assertHeader('X-Request-Id');
     }
 
@@ -37,7 +37,7 @@ class ApiFoundationTest extends TestCase
             ->assertJsonPath('data.id', $user->id)
             ->assertJsonPath('data.roles', ['staff']);
 
-        $this->withToken($token)->deleteJson('/api/v1/auth/token')->assertNoContent();
+        $this->withToken($token)->deleteJson('/api/v1/auth/token')->assertOk()->assertJsonPath('success', true);
         $this->assertNull(PersonalAccessToken::findToken($token));
         $this->assertDatabaseHas('audit_logs', ['event' => 'api.token_revoked', 'user_id' => $user->id]);
     }
@@ -57,12 +57,12 @@ class ApiFoundationTest extends TestCase
 
         $this->postJson('/api/v1/auth/token', ['email' => 'api@geni.test', 'password' => 'nope', 'device_name' => 'x'])
             ->assertStatus(422)
-            ->assertJsonPath('error.code', 'validation_failed')
-            ->assertJsonStructure(['error' => ['code', 'message', 'details' => ['email'], 'request_id']]);
+            ->assertJsonPath('code', 'validation_failed')
+            ->assertJsonStructure(['code', 'message', 'errors' => ['email'], 'request_id']);
 
         $this->postJson('/api/v1/auth/token', [])
             ->assertStatus(422)
-            ->assertJsonStructure(['error' => ['details' => ['email', 'password', 'device_name']]]);
+            ->assertJsonStructure(['errors' => ['email', 'password', 'device_name']]);
     }
 
     public function test_inactive_users_cannot_obtain_or_use_tokens(): void
@@ -78,16 +78,16 @@ class ApiFoundationTest extends TestCase
     public function test_api_uses_accept_language_for_messages(): void
     {
         $this->getJson('/api/v1/user', ['Accept-Language' => 'en'])
-            ->assertJsonPath('error.message', 'Authentication is required.')
+            ->assertJsonPath('message', 'Authentication is required.')
             ->assertHeader('Content-Language', 'en');
 
         $this->getJson('/api/v1/user', ['Accept-Language' => 'ar'])
-            ->assertJsonPath('error.message', 'يجب تسجيل الدخول.');
+            ->assertJsonPath('message', 'يجب تسجيل الدخول.');
     }
 
     public function test_unknown_endpoints_return_the_not_found_envelope(): void
     {
-        $this->getJson('/api/v1/does-not-exist')->assertNotFound()->assertJsonPath('error.code', 'not_found');
+        $this->getJson('/api/v1/does-not-exist')->assertNotFound()->assertJsonPath('code', 'not_found');
     }
 
     public function test_token_endpoint_is_rate_limited(): void
@@ -98,7 +98,7 @@ class ApiFoundationTest extends TestCase
 
         $this->postJson('/api/v1/auth/token', ['email' => 'x@geni.test', 'password' => 'bad', 'device_name' => 'x'])
             ->assertStatus(429)
-            ->assertJsonPath('error.code', 'rate_limited');
+            ->assertJsonPath('code', 'rate_limited');
     }
 
     public function test_admin_session_does_not_authenticate_the_api(): void

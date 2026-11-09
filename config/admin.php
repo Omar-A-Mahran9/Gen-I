@@ -88,7 +88,7 @@ return [
         'organizations' => ['view', 'create', 'update', 'delete'],
         'companies' => ['view', 'create', 'update', 'delete'],
         'branches' => ['view', 'create', 'update', 'delete'],
-        'catalog' => ['view', 'create', 'update', 'delete', 'approve'],
+        'catalog' => ['view', 'create', 'update', 'delete', 'approve', 'import'],
         'policies' => ['view', 'manage', 'approve'],
         'pricing' => ['view', 'manage'],
         'inventory' => ['view', 'adjust'],
@@ -224,6 +224,7 @@ return [
                 ['key' => 'products', 'label' => 'admin.menu.products', 'route' => 'admin.products.index', 'active' => ['admin.products.*', 'admin.variants.*'], 'permission' => 'catalog.view'],
                 ['key' => 'categories', 'label' => 'admin.menu.categories', 'route' => 'admin.categories.index', 'active' => ['admin.categories.*'], 'permission' => 'catalog.view'],
                 ['key' => 'brands', 'label' => 'admin.menu.brands', 'route' => 'admin.brands.index', 'active' => ['admin.brands.*'], 'permission' => 'catalog.view'],
+                ['key' => 'catalog_import', 'label' => 'admin.menu.catalog_import', 'route' => 'admin.catalog.import.create', 'active' => ['admin.catalog.import.*'], 'permission' => 'catalog.import'],
             ],
         ],
         [
@@ -271,6 +272,12 @@ return [
         'logo_max_kb' => 1024,
         'favicon_max_kb' => 256,
         'product_image_max_kb' => 5120,
+    ],
+
+    // Catalog import limits (docs/catalog-import-contract.md §2). Technical defaults, not business rules.
+    'catalog_import' => [
+        'max_kb' => 5120,
+        'max_rows' => 5000,
     ],
 
     // Organization defaults from the blueprint field rules (S2 §9.1).

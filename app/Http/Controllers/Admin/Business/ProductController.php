@@ -5,10 +5,13 @@ namespace App\Http\Controllers\Admin\Business;
 use App\Enums\PolicyStatus;
 use App\Enums\ProductStatus;
 use App\Enums\VariantStatus;
-use App\Http\Requests\Business\ProductMediaRequest;
-use App\Http\Requests\Business\ProductRequest;
+use App\Http\Requests\Business\StoreProductMediaRequest;
+use App\Http\Requests\Business\StoreProductRequest;
+use App\Http\Requests\Business\StoreVariantRequest;
+use App\Http\Requests\Business\UpdateProductMediaRequest;
+use App\Http\Requests\Business\UpdateProductRequest;
+use App\Http\Requests\Business\UpdateVariantRequest;
 use App\Http\Requests\Business\VariantAttributesRequest;
-use App\Http\Requests\Business\VariantRequest;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\MediaAsset;
@@ -67,7 +70,7 @@ class ProductController extends BusinessController
         return view('admin.business.products.form', $this->formData($request, new Product));
     }
 
-    public function store(ProductRequest $request): JsonResponse|RedirectResponse
+    public function store(StoreProductRequest $request): JsonResponse|RedirectResponse
     {
         $product = $this->service->create($request->payload(), $request->user());
 
@@ -95,7 +98,7 @@ class ProductController extends BusinessController
         return view('admin.business.products.form', $this->formData($request, $product));
     }
 
-    public function update(ProductRequest $request, Product $product): JsonResponse|RedirectResponse
+    public function update(UpdateProductRequest $request, Product $product): JsonResponse|RedirectResponse
     {
         $this->service->update($product, $request->payload(), $request->user());
 
@@ -119,14 +122,14 @@ class ProductController extends BusinessController
         return $this->success($request, __('admin.messages.deleted'), route('admin.products.index'));
     }
 
-    public function storeVariant(VariantRequest $request, Product $product): JsonResponse|RedirectResponse
+    public function storeVariant(StoreVariantRequest $request, Product $product): JsonResponse|RedirectResponse
     {
         $this->service->saveVariant($product, $request->validated(), $request->user());
 
         return $this->success($request, __('admin.messages.created'), route('admin.products.show', $product));
     }
 
-    public function updateVariant(VariantRequest $request, ProductVariant $variant): JsonResponse|RedirectResponse
+    public function updateVariant(UpdateVariantRequest $request, ProductVariant $variant): JsonResponse|RedirectResponse
     {
         $this->service->saveVariant($variant->product, $request->validated(), $request->user(), $variant);
 
@@ -158,14 +161,14 @@ class ProductController extends BusinessController
         return $this->success($request, __('admin.messages.updated'), route('admin.products.show', $variant->product_id));
     }
 
-    public function storeMedia(ProductMediaRequest $request, Product $product): JsonResponse|RedirectResponse
+    public function storeMedia(StoreProductMediaRequest $request, Product $product): JsonResponse|RedirectResponse
     {
         $this->service->addMedia($product, $request->file('image'), $request->validated(), $request->user());
 
         return $this->success($request, __('admin.products.messages.media_uploaded'), route('admin.products.show', $product));
     }
 
-    public function updateMedia(ProductMediaRequest $request, Product $product, ProductMedia $media): JsonResponse|RedirectResponse
+    public function updateMedia(UpdateProductMediaRequest $request, Product $product, ProductMedia $media): JsonResponse|RedirectResponse
     {
         abort_unless((int) $media->product_id === (int) $product->id, 404);
         $this->service->updateMedia($media, $request->validated(), $request->user());

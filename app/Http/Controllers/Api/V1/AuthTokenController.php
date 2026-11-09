@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Auth\IssueTokenRequest;
 use App\Http\Resources\Api\V1\UserResource;
 use App\Models\User;
@@ -17,7 +16,7 @@ use Illuminate\Validation\ValidationException;
  * Personal-access-token authentication for API clients (Sanctum).
  * Separate from the admin dashboard's session login.
  */
-class AuthTokenController extends Controller
+class AuthTokenController extends ApiController
 {
     public function __construct(protected AuditLogger $audit) {}
 
@@ -33,22 +32,20 @@ class AuthTokenController extends Controller
 
         $this->audit->log('api.token_issued', $user, ['device_name' => $request->validated('device_name')], $user);
 
-        return response()->json([
-            'data' => [
-                'token' => $token->plainTextToken,
-                'token_type' => 'Bearer',
-                'user' => new UserResource($user->load('roles')),
-            ],
+        return $this->success(__('api.messages.token_issued'), [
+            'token' => $token->plainTextToken,
+            'token_type' => 'Bearer',
+            'user' => new UserResource($user->load('roles')),
         ], Response::HTTP_CREATED);
     }
 
-    public function destroy(Request $request): Response
+    public function destroy(Request $request): JsonResponse
     {
         $user = $request->user();
         $user->currentAccessToken()->delete();
 
         $this->audit->log('api.token_revoked', $user, [], $user);
 
-        return response()->noContent();
+        return $this->success(__('api.messages.token_revoked'));
     }
 }

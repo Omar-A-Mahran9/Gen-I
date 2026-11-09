@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Admin\Business;
 
 use App\Enums\ActiveStatus;
 use App\Enums\PolicyStatus;
-use App\Http\Requests\Business\PriceListRequest;
-use App\Http\Requests\Business\PriceRequest;
+use App\Http\Requests\Business\StorePriceListRequest;
+use App\Http\Requests\Business\StorePriceRequest;
+use App\Http\Requests\Business\UpdatePriceListRequest;
+use App\Http\Requests\Business\UpdatePriceRequest;
 use App\Models\PolicyVersion;
 use App\Models\Price;
 use App\Models\PriceList;
@@ -39,19 +41,13 @@ class PriceListController extends BusinessController
                 'currency' => e($l->currency),
                 'prices' => (int) $l->prices_count,
                 'status' => view('admin.business.partials.status-badge', ['status' => $l->status])->render(),
-                'actions' => view('admin.business.partials.row-actions', ['model' => $l, 'route' => 'price-lists', 'param' => $l])->render(),
+                'actions' => view('admin.business.partials.row-actions', ['model' => $l, 'route' => 'price-lists', 'param' => $l,
+                    'editModal' => '#geni_price_list_modal', 'record' => $l->only(['id', 'organization_id', 'code', 'currency'])])->render(),
             ])
             ->toResponse();
     }
 
-    public function create(Request $request): View
-    {
-        Gate::authorize('create', PriceList::class);
-
-        return view('admin.business.price-lists.form', ['list' => new PriceList(['currency' => config('admin.organization_defaults.currency')]), 'organizations' => $this->organizationOptions($request->user())]);
-    }
-
-    public function store(PriceListRequest $request): JsonResponse|RedirectResponse
+    public function store(StorePriceListRequest $request): JsonResponse|RedirectResponse
     {
         $list = $this->service->saveList($request->payload(), $request->user());
 
@@ -83,18 +79,12 @@ class PriceListController extends BusinessController
         return view('admin.business.price-lists.show', [
             'list' => $priceList->load('organization')->loadCount('prices'),
             'variants' => ProductVariant::query()->where('organization_id', $priceList->organization_id)->with('product:id,name_en,name_ar')->orderBy('sku')->get(),
+            'organizations' => $this->organizationOptions($request->user()),
             'taxPolicies' => PolicyVersion::query()->where('organization_id', $priceList->organization_id)->where('status', PolicyStatus::Approved->value)->orderBy('policy_code')->get(),
         ]);
     }
 
-    public function edit(Request $request, PriceList $priceList): View
-    {
-        Gate::authorize('update', $priceList);
-
-        return view('admin.business.price-lists.form', ['list' => $priceList, 'organizations' => $this->organizationOptions($request->user())]);
-    }
-
-    public function update(PriceListRequest $request, PriceList $priceList): JsonResponse|RedirectResponse
+    public function update(UpdatePriceListRequest $request, PriceList $priceList): JsonResponse|RedirectResponse
     {
         $this->service->saveList($request->payload(), $request->user(), $priceList);
 
@@ -118,14 +108,14 @@ class PriceListController extends BusinessController
         return $this->success($request, __('admin.messages.deleted'), route('admin.price-lists.index'));
     }
 
-    public function storePrice(PriceRequest $request, PriceList $priceList): JsonResponse|RedirectResponse
+    public function storePrice(StorePriceRequest $request, PriceList $priceList): JsonResponse|RedirectResponse
     {
         $this->service->createPrice($priceList, $request->validated(), $request->user());
 
         return $this->success($request, __('admin.pricing.messages.price_created'), route('admin.price-lists.show', $priceList));
     }
 
-    public function updatePrice(PriceRequest $request, Price $price): JsonResponse|RedirectResponse
+    public function updatePrice(UpdatePriceRequest $request, Price $price): JsonResponse|RedirectResponse
     {
         $this->service->updateFuturePrice($price, $request->validated(), $request->user());
 

@@ -2,7 +2,8 @@
 
 namespace App\Http\Controllers\Admin\Business;
 
-use App\Http\Requests\Business\PolicyVersionRequest;
+use App\Http\Requests\Business\StorePolicyVersionRequest;
+use App\Http\Requests\Business\UpdatePolicyVersionRequest;
 use App\Models\PolicyVersion;
 use App\Services\Business\PolicyService;
 use App\Support\DataTable;
@@ -45,7 +46,7 @@ class PolicyVersionController extends BusinessController
         return view('admin.business.policies.form', ['policy' => new PolicyVersion(['effective_from' => now()]), 'organizations' => $this->organizationOptions($request->user())]);
     }
 
-    public function store(PolicyVersionRequest $request): JsonResponse|RedirectResponse
+    public function store(StorePolicyVersionRequest $request): JsonResponse|RedirectResponse
     {
         $policy = $this->service->createDraft($request->payload(), $request->user());
 
@@ -66,7 +67,7 @@ class PolicyVersionController extends BusinessController
         return view('admin.business.policies.form', ['policy' => $policy, 'organizations' => $this->organizationOptions($request->user())]);
     }
 
-    public function update(PolicyVersionRequest $request, PolicyVersion $policy): JsonResponse|RedirectResponse
+    public function update(UpdatePolicyVersionRequest $request, PolicyVersion $policy): JsonResponse|RedirectResponse
     {
         $this->service->updateDraft($policy, $request->payload(), $request->user());
 

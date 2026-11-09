@@ -8,7 +8,8 @@
             @include('admin.business.partials.status-actions', ['url' => route('admin.price-lists.status', $list), 'enum' => \App\Enums\ActiveStatus::class,
                 'targets' => [$list->status === \App\Enums\ActiveStatus::Active ? 'inactive' : 'active']])
             <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#geni_price_modal"><i class="ki-outline ki-plus fs-5"></i>{{ __('admin.pricing.add_price') }}</button>
-            <x-admin.button :href="route('admin.price-lists.edit', $list)" icon="ki-pencil" size="sm" variant="light">{{ __('admin.common.edit') }}</x-admin.button>
+            <x-admin.button data-geni-crud-edit="#geni_price_list_modal" :data-url="route('admin.price-lists.update', $list)"
+                :data-record="json_encode($list->only(['id', 'organization_id', 'code', 'currency']))" icon="ki-pencil" size="sm" variant="light">{{ __('admin.common.edit') }}</x-admin.button>
         @endcan
     </x-admin.toolbar>
 @endsection
@@ -87,5 +88,9 @@
                 </form>
             </x-admin.modal>
         @endpush
+    @endcan
+
+    @can('update', $list)
+        @include('admin.business.price-lists.partials.form-modal')
     @endcan
 @endsection

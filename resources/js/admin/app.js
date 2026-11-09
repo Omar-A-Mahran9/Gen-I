@@ -3,6 +3,7 @@
  * so jQuery, Bootstrap, toastr, SweetAlert2, Select2 and KT* components are available.
  */
 import { initActions } from './actions';
+import { initCrudModals } from './crud-modal';
 import { initDataTables } from './datatable';
 import { clearErrors, initForms, showErrors } from './forms';
 import { request } from './http';
@@ -27,6 +28,7 @@ if (window.jQuery) {
 function boot() {
     initSelect2Ajax();
     initForms();
+    initCrudModals();
     initDataTables();
     showPendingFlash();
 }

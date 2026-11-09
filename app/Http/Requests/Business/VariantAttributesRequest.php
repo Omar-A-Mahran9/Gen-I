@@ -2,8 +2,8 @@
 
 namespace App\Http\Requests\Business;
 
-use App\Enums\AttributeValueType;
 use App\Models\ProductVariant;
+use App\Rules\TypedAttributeValue;
 use App\Services\Business\ProductService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
@@ -57,13 +57,7 @@ class VariantAttributesRequest extends FormRequest
                         continue;
                     }
 
-                    $valid = match ($definition->value_type) {
-                        AttributeValueType::Number => is_numeric($value) && abs((float) $value) < 1e12,
-                        AttributeValueType::Boolean => in_array($value, [true, false, 0, 1, '0', '1', 'true', 'false'], true),
-                        AttributeValueType::Text => is_string($value) && mb_strlen($value) <= 2000,
-                    };
-
-                    if (! $valid) {
+                    if (! TypedAttributeValue::passes($definition->value_type, $value)) {
                         $validator->errors()->add("values.{$i}.value", __('admin.errors.attribute_value_type', ['attribute' => $definition->displayLabel(), 'type' => $definition->value_type->label()]));
                     }
                 }

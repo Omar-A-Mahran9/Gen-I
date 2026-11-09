@@ -202,7 +202,7 @@ class CatalogTest extends TestCase
             ->assertCreated()->assertJsonPath('data.sku', 'API-SKU')->json('data.id');
         $this->patchJson("/api/v1/variants/{$variantId}/status", ['status' => 'unavailable'])->assertOk()->assertJsonPath('data.status', 'unavailable');
         $this->patchJson("/api/v1/variants/{$variantId}/status", ['status' => 'retired'])->assertOk();
-        $this->patchJson("/api/v1/variants/{$variantId}/status", ['status' => 'active'])->assertStatus(422)->assertJsonPath('error.code', 'business_rule_violation');
+        $this->patchJson("/api/v1/variants/{$variantId}/status", ['status' => 'active'])->assertStatus(422)->assertJsonPath('code', 'business_rule_violation');
 
         $this->getJson("/api/v1/products/{$id}")->assertOk()->assertJsonPath('data.variants.0.sku', 'API-SKU');
         $this->getJson('/api/v1/products?filter[status]=draft&search=API')->assertOk()->assertJsonPath('meta.total', 1);

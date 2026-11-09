@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\AuthTokenController;
 use App\Http\Controllers\Api\V1\BranchController;
 use App\Http\Controllers\Api\V1\BrandController;
+use App\Http\Controllers\Api\V1\CatalogImportController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\CompanyController;
 use App\Http\Controllers\Api\V1\CurrentUserController;
@@ -56,6 +57,9 @@ Route::name('api.v1.')->group(function (): void {
 
         Route::patch('brands/{brand}/status', [BrandController::class, 'status'])->name('brands.status');
         Route::apiResource('brands', BrandController::class);
+
+        Route::post('catalog/imports', [CatalogImportController::class, 'store'])->middleware('throttle:10,1')->name('catalog.imports.store');
+        Route::get('catalog/imports/template', [CatalogImportController::class, 'template'])->name('catalog.imports.template');
 
         Route::patch('products/{product}/status', [ProductController::class, 'status'])->name('products.status');
         Route::get('products/{product}/variants', [ProductController::class, 'variants'])->name('products.variants.index');

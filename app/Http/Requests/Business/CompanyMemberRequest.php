@@ -13,7 +13,7 @@ use Illuminate\Validation\Rule;
  * Company membership. Members must be users of the company's organization.
  * approval_limit is recorded only; spending authority is conditional scope.
  */
-class CompanyMemberRequest extends FormRequest
+abstract class CompanyMemberRequest extends FormRequest
 {
     public function authorize(): bool
     {

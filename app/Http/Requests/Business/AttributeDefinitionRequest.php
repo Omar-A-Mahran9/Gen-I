@@ -8,7 +8,7 @@ use App\Models\Category;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class AttributeDefinitionRequest extends FormRequest
+abstract class AttributeDefinitionRequest extends FormRequest
 {
     public function authorize(): bool
     {

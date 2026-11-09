@@ -3,19 +3,11 @@
 namespace App\Http\Requests\Business;
 
 use App\Http\Requests\OrganizationScopedRequest;
-use App\Models\Product;
 use Illuminate\Validation\Rule;
 
-class ProductRequest extends OrganizationScopedRequest
+abstract class ProductRequest extends OrganizationScopedRequest
 {
     protected ?string $routeModel = 'product';
-
-    public function authorize(): bool
-    {
-        $product = $this->record();
-
-        return $product ? $this->user()->can('update', $product) : $this->user()->can('create', Product::class);
-    }
 
     /**
      * @return array<string, mixed>

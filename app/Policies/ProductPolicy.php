@@ -19,4 +19,13 @@ class ProductPolicy extends OrganizationScopedPolicy
     {
         return $user->can('catalog.approve') && $this->inScope($user, $product);
     }
+
+    /**
+     * Bulk catalog import (UC19): creates draft products and their exact variants, or updates them.
+     * Publication still needs catalog.approve through the normal lifecycle.
+     */
+    public function import(User $user): bool
+    {
+        return $user->can('catalog.import') && ($user->isSuperAdmin() || $user->organization_id !== null);
+    }
 }

@@ -7,7 +7,8 @@
         @can('update', $category)
             @include('admin.business.partials.status-actions', ['url' => route('admin.categories.status', $category), 'enum' => \App\Enums\ActiveStatus::class,
                 'targets' => [$category->status === \App\Enums\ActiveStatus::Active ? 'inactive' : 'active']])
-            <x-admin.button :href="route('admin.categories.edit', $category)" icon="ki-pencil" size="sm">{{ __('admin.common.edit') }}</x-admin.button>
+            <x-admin.button data-geni-crud-edit="#geni_category_modal" :data-url="route('admin.categories.update', $category)"
+                :data-record="json_encode($category->only(['id', 'organization_id', 'code', 'parent_id', 'name_ar', 'name_en']))" icon="ki-pencil" size="sm">{{ __('admin.common.edit') }}</x-admin.button>
         @endcan
         @can('delete', $category)
             <button type="button" class="btn btn-sm btn-light-danger" data-geni-action="{{ route('admin.categories.destroy', $category) }}" data-geni-method="DELETE"
@@ -111,4 +112,8 @@
             </x-admin.modal>
         @endpush
     @endif
+
+    @can('update', $category)
+        @include('admin.business.categories.partials.form-modal')
+    @endcan
 @endsection

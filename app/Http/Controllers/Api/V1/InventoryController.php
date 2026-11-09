@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Enums\MovementReason;
-use App\Http\Controllers\Controller;
 use App\Http\Requests\Business\InventoryAdjustmentRequest;
 use App\Http\Resources\Api\V1\InventoryBalanceResource;
 use App\Http\Resources\Api\V1\InventoryMovementResource;
@@ -11,27 +10,27 @@ use App\Services\Business\InventoryService;
 use App\Support\ApiListing;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
 
-class InventoryController extends Controller
+class InventoryController extends ApiController
 {
     public function __construct(protected InventoryService $service) {}
 
-    public function balances(Request $request): AnonymousResourceCollection
+    public function balances(Request $request): JsonResponse
     {
         Gate::authorize('inventory.view');
         $query = $this->service->balanceQuery($request->user(), ApiListing::filters($request, ['branch_id', 'variant_id', 'organization_id', 'stock']));
 
-        return InventoryBalanceResource::collection(ApiListing::paginate($query, $request, ['on_hand' => 'on_hand', 'updated_at' => 'source_updated_at'], '-source_updated_at'));
+        return $this->successWithPagination(__('api.messages.retrieved'), InventoryBalanceResource::collection(ApiListing::paginate($query, $request, ['on_hand' => 'on_hand', 'updated_at' => 'source_updated_at'], '-source_updated_at')));
     }
 
-    public function movements(Request $request): AnonymousResourceCollection
+    public function movements(Request $request): JsonResponse
     {
         Gate::authorize('inventory.view');
         $query = $this->service->movementQuery($request->user(), ApiListing::filters($request, ['branch_id', 'variant_id', 'reason', 'organization_id', 'from', 'to']));
 
-        return InventoryMovementResource::collection(ApiListing::paginate($query, $request, ['created_at' => 'id'], '-created_at'));
+        return $this->successWithPagination(__('api.messages.retrieved'), InventoryMovementResource::collection(ApiListing::paginate($query, $request, ['created_at' => 'id'], '-created_at')));
     }
 
     /**
@@ -53,8 +52,10 @@ class InventoryController extends Controller
             $key,
         );
 
-        return (new InventoryMovementResource($movement->load(['branch', 'variant'])))
-            ->response()
-            ->setStatusCode($movement->wasRecentlyCreated ? 201 : 200);
+        return $this->success(
+            __($movement->wasRecentlyCreated ? 'api.messages.stock_adjusted' : 'api.messages.idempotent_replay'),
+            new InventoryMovementResource($movement->load(['branch', 'variant'])),
+            $movement->wasRecentlyCreated ? Response::HTTP_CREATED : Response::HTTP_OK,
+        );
     }
 }

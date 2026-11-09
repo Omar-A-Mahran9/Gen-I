@@ -161,6 +161,6 @@ class PricingTest extends TestCase
         $this->getJson("/api/v1/price-lists/{$foreignList->id}")->assertNotFound();
         $foreignVariant = ProductVariant::factory()->create();
         $this->postJson("/api/v1/price-lists/{$list->id}/prices", ['variant_id' => $foreignVariant->id, 'unit_price' => '1', 'tax_policy_id' => $tax->id])
-            ->assertStatus(422)->assertJsonPath('error.code', 'validation_failed');
+            ->assertStatus(422)->assertJsonPath('code', 'validation_failed');
     }
 }

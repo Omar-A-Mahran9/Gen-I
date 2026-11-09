@@ -5,7 +5,7 @@
 @section('toolbar')
     <x-admin.toolbar :title="__('admin.pricing.title')" :subtitle="__('admin.pricing.subtitle')" :breadcrumbs="[__('admin.menu.pricing') => null, __('admin.pricing.title') => null]">
         @can('create', \App\Models\PriceList::class)
-            <x-admin.button :href="route('admin.price-lists.create')" icon="ki-plus" size="sm">{{ __('admin.pricing.add') }}</x-admin.button>
+            <x-admin.button data-geni-crud-create="#geni_price_list_modal" icon="ki-plus" size="sm">{{ __('admin.pricing.add') }}</x-admin.button>
         @endcan
     </x-admin.toolbar>
 @endsection
@@ -29,4 +29,6 @@
                 ]" />
         </div>
     </div>
+
+    @include('admin.business.price-lists.partials.form-modal', ['table' => '#geni_price_lists_table'])
 @endsection

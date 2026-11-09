@@ -3,75 +3,75 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Enums\ActiveStatus;
-use App\Http\Controllers\Controller;
-use App\Http\Requests\Business\BranchRequest;
+use App\Http\Requests\Business\StoreBranchRequest;
+use App\Http\Requests\Business\UpdateBranchRequest;
 use App\Http\Resources\Api\V1\BranchResource;
 use App\Http\Resources\Api\V1\InventoryBalanceResource;
 use App\Models\Branch;
 use App\Services\Business\BranchService;
 use App\Services\Business\InventoryService;
 use App\Support\ApiListing;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 
-class BranchController extends Controller
+class BranchController extends ApiController
 {
     public function __construct(protected BranchService $service) {}
 
-    public function index(Request $request): AnonymousResourceCollection
+    public function index(Request $request): JsonResponse
     {
         Gate::authorize('viewAny', Branch::class);
         $query = $this->service->query($request->user(), ApiListing::filters($request, ['status', 'organization_id', 'city']));
 
-        return BranchResource::collection(ApiListing::paginate($query, $request, ['code' => 'code', 'name' => 'name', 'city' => 'city', 'created_at' => 'created_at'], 'code'));
+        return $this->successWithPagination(__('api.messages.retrieved'), BranchResource::collection(ApiListing::paginate($query, $request, ['code' => 'code', 'name' => 'name', 'city' => 'city', 'created_at' => 'created_at'], 'code')));
     }
 
-    public function store(BranchRequest $request): BranchResource
+    public function store(StoreBranchRequest $request): JsonResponse
     {
-        return new BranchResource($this->service->create($request->payload(), $request->user()));
+        return $this->success(__('api.messages.created'), new BranchResource($this->service->create($request->payload(), $request->user())), Response::HTTP_CREATED);
     }
 
-    public function show(Branch $branch): BranchResource
+    public function show(Branch $branch): JsonResponse
     {
         Gate::authorize('view', $branch);
 
-        return new BranchResource($branch->loadCount('inventoryBalances'));
+        return $this->success(__('api.messages.retrieved'), new BranchResource($branch->loadCount('inventoryBalances')));
     }
 
-    public function update(BranchRequest $request, Branch $branch): BranchResource
+    public function update(UpdateBranchRequest $request, Branch $branch): JsonResponse
     {
-        return new BranchResource($this->service->update($branch, $request->payload(), $request->user()));
+        return $this->success(__('api.messages.updated'), new BranchResource($this->service->update($branch, $request->payload(), $request->user())));
     }
 
-    public function status(Request $request, Branch $branch): BranchResource
+    public function status(Request $request, Branch $branch): JsonResponse
     {
         Gate::authorize('update', $branch);
         $data = $request->validate(['status' => ['required', Rule::enum(ActiveStatus::class)]]);
 
-        return new BranchResource($this->service->setStatus($branch, ActiveStatus::from($data['status']), $request->user()));
+        return $this->success(__('api.messages.status_changed'), new BranchResource($this->service->setStatus($branch, ActiveStatus::from($data['status']), $request->user())));
     }
 
-    public function destroy(Request $request, Branch $branch): Response
+    public function destroy(Request $request, Branch $branch): JsonResponse
     {
         Gate::authorize('delete', $branch);
         $this->service->delete($branch, $request->user());
 
-        return response()->noContent();
+        return $this->success(__('api.messages.deleted'));
     }
 
     /**
      * Product availability at this store/branch.
      */
-    public function inventory(Request $request, Branch $branch, InventoryService $inventory): AnonymousResourceCollection
+    public function inventory(Request $request, Branch $branch, InventoryService $inventory): JsonResponse
     {
         Gate::authorize('view', $branch);
         abort_unless($request->user()->can('inventory.view'), 403);
 
         $filters = ApiListing::filters($request, ['stock']) + ['branch_id' => $branch->id];
 
-        return InventoryBalanceResource::collection(ApiListing::paginate($inventory->balanceQuery($request->user(), $filters), $request, ['on_hand' => 'on_hand', 'updated_at' => 'source_updated_at'], '-source_updated_at'));
+        return $this->successWithPagination(__('api.messages.retrieved'), InventoryBalanceResource::collection(ApiListing::paginate($inventory->balanceQuery($request->user(), $filters), $request, ['on_hand' => 'on_hand', 'updated_at' => 'source_updated_at'], '-source_updated_at')));
     }
 }

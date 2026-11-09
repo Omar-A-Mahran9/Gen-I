@@ -3,22 +3,14 @@
 namespace App\Http\Requests\Business;
 
 use App\Http\Requests\OrganizationScopedRequest;
-use App\Models\PriceList;
 use Illuminate\Validation\Rule;
 
 /**
  * Retail price lists. company_id (contract lists) is conditional scope and not accepted.
  */
-class PriceListRequest extends OrganizationScopedRequest
+abstract class PriceListRequest extends OrganizationScopedRequest
 {
     protected ?string $routeModel = 'price_list';
-
-    public function authorize(): bool
-    {
-        $list = $this->record();
-
-        return $list ? $this->user()->can('update', $list) : $this->user()->can('create', PriceList::class);
-    }
 
     /**
      * @return array<string, mixed>

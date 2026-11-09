@@ -66,6 +66,18 @@ This repository is the **Laravel 13 backend**: a Metronic admin dashboard plus a
 - Every user-facing string goes in `lang/{ar,en}/admin.php`. Keep the two files key-for-key identical.
 - Build assets with `npx vite build`. The repo's `.npmrc` has `ignore-scripts=true`, which blocks `npm run build` on npm 6.
 - First admin: `php artisan app:create-admin`. Never seed users or credentials.
+- Add/edit forms follow the LMS pattern by form complexity:
+  - Simple records (few fields, one section) use `<x-admin.crud-modal>` on the list page, opened by `data-geni-crud-create` / `data-geni-crud-edit` (`data-url`, `data-record`). Current modules: organizations, companies, categories, brands, price lists. Their resource routes exclude `create`/`edit`.
+  - Complex records keep dedicated create/edit pages: branches, products, policies.
+  - Both patterns use `data-geni-ajax-form`: inline errors, button loading state, toasts.
+
+## API and validation conventions (S1-D2-01)
+- API responses use the LMS structure: `{success, data, message}`; paginated lists add `links` and `meta`; failures are `{success: false, message, code, errors?, request_id}`.
+  - API controllers extend `Api\V1\ApiController` and use `success()`, `successWithPagination()`, `failure()` and `validationFailure()` from `RespondsWithHttpStatus`.
+  - Bodies are built only by `App\Support\ApiResponse`.
+  - Creates return `201`; deletes return `200` with a message.
+- Business Form Requests come in pairs, `StoreXRequest` / `UpdateXRequest`, extending an abstract `XRequest` that holds the shared rules. Action-only requests keep a descriptive name.
+- Put reusable validation rules in `app/Rules`.
 
 ## Business modules conventions (Phase 2)
 - Read `docs/business-modules.md` first. The schema follows the S2 blueprint §9; every deviation goes in `docs/database-design.md` §9.

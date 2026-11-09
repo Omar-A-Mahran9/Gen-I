@@ -6,7 +6,8 @@
     <x-admin.toolbar :title="$company->legal_name" :breadcrumbs="[__('admin.companies.title') => route('admin.companies.index'), $company->legal_name => null]">
         @can('update', $company)
             @include('admin.business.partials.status-actions', ['url' => route('admin.companies.status', $company), 'enum' => \App\Enums\CompanyStatus::class, 'targets' => $transitions])
-            <x-admin.button :href="route('admin.companies.edit', $company)" icon="ki-pencil" size="sm">{{ __('admin.common.edit') }}</x-admin.button>
+            <x-admin.button data-geni-crud-edit="#geni_company_modal" :data-url="route('admin.companies.update', $company)"
+                :data-record="json_encode($company->only(['id', 'organization_id', 'legal_name', 'tax_reference', 'account_owner_id']))" icon="ki-pencil" size="sm">{{ __('admin.common.edit') }}</x-admin.button>
         @endcan
         @can('delete', $company)
             <button type="button" class="btn btn-sm btn-light-danger" data-geni-action="{{ route('admin.companies.destroy', $company) }}" data-geni-method="DELETE"
@@ -138,4 +139,8 @@
             </x-admin.modal>
         @endpush
     @endif
+
+    @can('update', $company)
+        @include('admin.business.companies.partials.form-modal')
+    @endcan
 @endsection

@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Admin\Business;
 
 use App\Enums\ActiveStatus;
-use App\Http\Requests\Business\AttributeDefinitionRequest;
-use App\Http\Requests\Business\CategoryRequest;
+use App\Http\Requests\Business\StoreAttributeDefinitionRequest;
+use App\Http\Requests\Business\StoreCategoryRequest;
+use App\Http\Requests\Business\UpdateAttributeDefinitionRequest;
+use App\Http\Requests\Business\UpdateCategoryRequest;
 use App\Models\AttributeDefinition;
 use App\Models\Category;
 use App\Services\Business\CatalogService;
@@ -25,7 +27,7 @@ class CategoryController extends BusinessController
         Gate::authorize('viewAny', Category::class);
 
         if (! $request->expectsJson()) {
-            return view('admin.business.categories.index', ['organizations' => $this->organizationOptions($request->user())]);
+            return view('admin.business.categories.index', $this->formData($request));
         }
 
         return DataTable::of($this->service->categoryQuery($request->user(), $this->tableFilters($request)), $request)
@@ -37,43 +39,30 @@ class CategoryController extends BusinessController
                 'parent' => e($c->parent?->displayName() ?? '—'),
                 'counts' => e(__('admin.categories.counts', ['products' => $c->products_count, 'attributes' => $c->attribute_definitions_count])),
                 'status' => view('admin.business.partials.status-badge', ['status' => $c->status])->render(),
-                'actions' => view('admin.business.partials.row-actions', ['model' => $c, 'route' => 'categories', 'param' => $c])->render(),
+                'actions' => view('admin.business.partials.row-actions', ['model' => $c, 'route' => 'categories', 'param' => $c,
+                    'editModal' => '#geni_category_modal', 'record' => $c->only(['id', 'organization_id', 'code', 'parent_id', 'name_ar', 'name_en'])])->render(),
             ])
             ->toResponse();
     }
 
-    public function create(Request $request): View
-    {
-        Gate::authorize('create', Category::class);
-
-        return view('admin.business.categories.form', $this->formData($request, new Category));
-    }
-
-    public function store(CategoryRequest $request): JsonResponse|RedirectResponse
+    public function store(StoreCategoryRequest $request): JsonResponse|RedirectResponse
     {
         $category = $this->service->saveCategory($request->payload(), $request->user());
 
         return $this->success($request, __('admin.messages.created'), route('admin.categories.show', $category));
     }
 
-    public function show(Category $category): View
+    public function show(Request $request, Category $category): View
     {
         Gate::authorize('view', $category);
 
         return view('admin.business.categories.show', [
             'category' => $category->load(['parent', 'children', 'attributeDefinitions', 'organization'])->loadCount('products'),
             'inherited' => $category->parent_id ? AttributeDefinition::query()->whereIn('category_id', array_slice($category->lineageIds(), 1))->with('category')->orderBy('comparison_order')->get() : collect(),
-        ]);
+        ] + $this->formData($request));
     }
 
-    public function edit(Request $request, Category $category): View
-    {
-        Gate::authorize('update', $category);
-
-        return view('admin.business.categories.form', $this->formData($request, $category));
-    }
-
-    public function update(CategoryRequest $request, Category $category): JsonResponse|RedirectResponse
+    public function update(UpdateCategoryRequest $request, Category $category): JsonResponse|RedirectResponse
     {
         $this->service->saveCategory($request->payload(), $request->user(), $category);
 
@@ -97,14 +86,14 @@ class CategoryController extends BusinessController
         return $this->success($request, __('admin.messages.deleted'), route('admin.categories.index'));
     }
 
-    public function storeAttribute(AttributeDefinitionRequest $request, Category $category): JsonResponse|RedirectResponse
+    public function storeAttribute(StoreAttributeDefinitionRequest $request, Category $category): JsonResponse|RedirectResponse
     {
         $this->service->saveAttribute($category, $request->validated(), $request->user());
 
         return $this->success($request, __('admin.messages.created'), route('admin.categories.show', $category));
     }
 
-    public function updateAttribute(AttributeDefinitionRequest $request, Category $category, AttributeDefinition $attribute): JsonResponse|RedirectResponse
+    public function updateAttribute(UpdateAttributeDefinitionRequest $request, Category $category, AttributeDefinition $attribute): JsonResponse|RedirectResponse
     {
         abort_unless((int) $attribute->category_id === (int) $category->id, 404);
         $this->service->saveAttribute($category, $request->validated(), $request->user(), $attribute);
@@ -124,14 +113,18 @@ class CategoryController extends BusinessController
     /**
      * @return array<string, mixed>
      */
-    protected function formData(Request $request, Category $category): array
+    /**
+     * Options for the add/edit modal: organizations (super admins) and candidate parents, each tagged
+     * with its organization; the modal hides other organizations' categories and the record itself.
+     * Cycles are still rejected by CatalogService.
+     *
+     * @return array<string, mixed>
+     */
+    protected function formData(Request $request): array
     {
         return [
-            'category' => $category,
             'organizations' => $this->organizationOptions($request->user()),
-            'parents' => Category::query()->forUser($request->user())
-                ->when($category->exists, fn ($q) => $q->where('organization_id', $category->organization_id)->whereKeyNot($category->id))
-                ->orderBy('name_en')->get(['id', 'name_en', 'name_ar', 'organization_id']),
+            'parents' => Category::query()->forUser($request->user())->orderBy('name_en')->get(['id', 'name_en', 'name_ar', 'organization_id']),
         ];
     }
 }

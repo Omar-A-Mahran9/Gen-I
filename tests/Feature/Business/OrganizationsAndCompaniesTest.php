@@ -20,7 +20,7 @@ class OrganizationsAndCompaniesTest extends TestCase
         $admin = $this->superAdmin();
 
         $this->actingAs($admin)->get(route('admin.organizations.index'))->assertOk();
-        $this->actingAs($admin)->get(route('admin.organizations.create'))->assertOk()->assertSee('Africa/Cairo');
+        $this->actingAs($admin)->get(route('admin.organizations.index'))->assertOk()->assertSee('geni_organization_modal')->assertSee('Africa/Cairo');
 
         $this->actingAs($admin)->postJson(route('admin.organizations.store'), ['name' => 'GEN-I Egypt', 'timezone' => 'Africa/Cairo', 'currency' => 'egp'])
             ->assertOk()->assertJsonPath('message', __('admin.messages.created'));
@@ -169,8 +169,8 @@ class OrganizationsAndCompaniesTest extends TestCase
         $this->patchJson("/api/v1/companies/{$id}/status", ['status' => 'verified'])->assertOk()->assertJsonPath('data.status', 'verified');
 
         $this->getJson('/api/v1/companies?per_page=1')->assertOk()->assertJsonStructure(['data', 'links', 'meta' => ['current_page', 'per_page', 'total']])->assertJsonPath('meta.total', 1);
-        $this->getJson("/api/v1/companies/{$foreignCompany->id}")->assertNotFound()->assertJsonPath('error.code', 'not_found');
-        $this->deleteJson("/api/v1/companies/{$id}")->assertForbidden()->assertJsonPath('error.code', 'forbidden');
+        $this->getJson("/api/v1/companies/{$foreignCompany->id}")->assertNotFound()->assertJsonPath('code', 'not_found');
+        $this->deleteJson("/api/v1/companies/{$id}")->assertForbidden()->assertJsonPath('code', 'forbidden');
     }
 
     public function test_company_cascade_deletes_addresses_when_safe(): void

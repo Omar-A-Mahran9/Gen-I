@@ -127,7 +127,7 @@ class BranchesTest extends TestCase
             ->json('data.id');
 
         $this->getJson('/api/v1/branches?filter[status]=active&sort=-code')->assertOk()->assertJsonPath('meta.total', 1);
-        $this->patchJson("/api/v1/branches/{$id}/status", ['status' => 'closed'])->assertStatus(422)->assertJsonPath('error.code', 'validation_failed');
+        $this->patchJson("/api/v1/branches/{$id}/status", ['status' => 'closed'])->assertStatus(422)->assertJsonPath('code', 'validation_failed');
         $this->getJson("/api/v1/branches/{$id}/inventory")->assertOk()->assertJsonPath('meta.total', 0);
         $this->getJson("/api/v1/branches/{$foreign->id}")->assertNotFound();
         $this->putJson("/api/v1/branches/{$foreign->id}", $this->payload())->assertNotFound();
@@ -135,6 +135,6 @@ class BranchesTest extends TestCase
 
     public function test_api_requires_authentication(): void
     {
-        $this->getJson('/api/v1/branches')->assertUnauthorized()->assertJsonPath('error.code', 'unauthenticated');
+        $this->getJson('/api/v1/branches')->assertUnauthorized()->assertJsonPath('code', 'unauthenticated');
     }
 }

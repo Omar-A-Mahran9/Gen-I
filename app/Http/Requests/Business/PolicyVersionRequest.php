@@ -3,22 +3,14 @@
 namespace App\Http\Requests\Business;
 
 use App\Http\Requests\OrganizationScopedRequest;
-use App\Models\PolicyVersion;
 
 /**
  * Policy drafts. rule_body must be a JSON object; its business schema per policy
  * type is pending GEN-I approval (BD-04/BD-06), so only structure is validated here.
  */
-class PolicyVersionRequest extends OrganizationScopedRequest
+abstract class PolicyVersionRequest extends OrganizationScopedRequest
 {
     protected ?string $routeModel = 'policy';
-
-    public function authorize(): bool
-    {
-        $policy = $this->record();
-
-        return $policy ? $this->user()->can('update', $policy) : $this->user()->can('create', PolicyVersion::class);
-    }
 
     /**
      * @return array<string, mixed>

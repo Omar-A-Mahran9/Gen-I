@@ -3,19 +3,11 @@
 namespace App\Http\Requests\Business;
 
 use App\Http\Requests\OrganizationScopedRequest;
-use App\Models\Company;
 use Illuminate\Validation\Rule;
 
-class CompanyRequest extends OrganizationScopedRequest
+abstract class CompanyRequest extends OrganizationScopedRequest
 {
     protected ?string $routeModel = 'company';
-
-    public function authorize(): bool
-    {
-        $company = $this->record();
-
-        return $company ? $this->user()->can('update', $company) : $this->user()->can('create', Company::class);
-    }
 
     /**
      * @return array<string, mixed>

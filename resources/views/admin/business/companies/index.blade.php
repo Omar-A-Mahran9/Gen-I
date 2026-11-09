@@ -5,7 +5,7 @@
 @section('toolbar')
     <x-admin.toolbar :title="__('admin.companies.title')" :subtitle="__('admin.companies.subtitle')" :breadcrumbs="[__('admin.menu.business') => null, __('admin.companies.title') => null]">
         @can('create', \App\Models\Company::class)
-            <x-admin.button :href="route('admin.companies.create')" icon="ki-plus" size="sm">{{ __('admin.companies.add') }}</x-admin.button>
+            <x-admin.button data-geni-crud-create="#geni_company_modal" icon="ki-plus" size="sm">{{ __('admin.companies.add') }}</x-admin.button>
         @endcan
     </x-admin.toolbar>
 @endsection
@@ -31,4 +31,6 @@
                 ]" />
         </div>
     </div>
+
+    @include('admin.business.companies.partials.form-modal', ['table' => '#geni_companies_table'])
 @endsection

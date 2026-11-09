@@ -7,16 +7,9 @@ use App\Models\Branch;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
-class BranchRequest extends OrganizationScopedRequest
+abstract class BranchRequest extends OrganizationScopedRequest
 {
     protected ?string $routeModel = 'branch';
-
-    public function authorize(): bool
-    {
-        $branch = $this->record();
-
-        return $branch ? $this->user()->can('update', $branch) : $this->user()->can('create', Branch::class);
-    }
 
     /**
      * @return array<string, mixed>

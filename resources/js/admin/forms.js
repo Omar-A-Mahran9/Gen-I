@@ -5,6 +5,8 @@
  * Options (data attributes on the form):
  *   data-geni-close-modal="#id"     hide this modal after success
  *   data-geni-reset-on-success      clear the form after success
+ *
+ * Response: {message, redirect?, level?} — level "error" shows the carried-over message as an error.
  */
 import { request } from './http';
 import { errorMessage, flashNext, setLoading, t, toast } from './ui';
@@ -75,7 +77,13 @@ async function submit(form, event) {
         if (form.dataset.geniCloseModal) {
             const modalElement = document.querySelector(form.dataset.geniCloseModal);
             if (modalElement && window.bootstrap) {
-                window.bootstrap.Modal.getOrCreateInstance(modalElement).hide();
+                const modal = window.bootstrap.Modal.getOrCreateInstance(modalElement);
+                // Bootstrap ignores hide() while the opening animation runs (fast responses): hide once it is shown.
+                if (modal._isTransitioning) {
+                    modalElement.addEventListener('shown.bs.modal', () => modal.hide(), { once: true });
+                } else {
+                    modal.hide();
+                }
             }
         }
 
@@ -91,8 +99,11 @@ async function submit(form, event) {
             return;
         }
 
+        // The server may ask for a different toast level (e.g. a rejected import that still redirects).
+        const level = result.data?.level === 'error' ? 'error' : 'success';
+
         if (result.data?.redirect) {
-            flashNext('success', message);
+            flashNext(level, message);
             if (result.data.redirect === window.location.href) {
                 // Same page (e.g. settings, profile): reload so changes such as branding apply.
                 window.location.reload();

@@ -10,7 +10,8 @@
                 'enum' => \App\Enums\OrganizationStatus::class,
                 'targets' => [$organization->status === \App\Enums\OrganizationStatus::Active ? 'suspended' : 'active'],
             ])
-            <x-admin.button :href="route('admin.organizations.edit', $organization)" icon="ki-pencil" size="sm">{{ __('admin.common.edit') }}</x-admin.button>
+            <x-admin.button data-geni-crud-edit="#geni_organization_modal" :data-url="route('admin.organizations.update', $organization)"
+                :data-record="json_encode($organization->only(['id', 'name', 'timezone', 'currency']))" icon="ki-pencil" size="sm">{{ __('admin.common.edit') }}</x-admin.button>
         @endcan
         @can('delete', $organization)
             <button type="button" class="btn btn-sm btn-light-danger" data-geni-action="{{ route('admin.organizations.destroy', $organization) }}" data-geni-method="DELETE"
@@ -56,4 +57,8 @@
             </x-admin.card>
         </div>
     </div>
+
+    @can('update', $organization)
+        @include('admin.business.organizations.partials.form-modal')
+    @endcan
 @endsection

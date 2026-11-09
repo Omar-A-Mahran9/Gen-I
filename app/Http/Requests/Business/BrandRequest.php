@@ -6,16 +6,9 @@ use App\Http\Requests\OrganizationScopedRequest;
 use App\Models\Brand;
 use Illuminate\Validation\Validator;
 
-class BrandRequest extends OrganizationScopedRequest
+abstract class BrandRequest extends OrganizationScopedRequest
 {
     protected ?string $routeModel = 'brand';
-
-    public function authorize(): bool
-    {
-        $brand = $this->record();
-
-        return $brand ? $this->user()->can('update', $brand) : $this->user()->can('create', Brand::class);
-    }
 
     /**
      * @return array<string, mixed>

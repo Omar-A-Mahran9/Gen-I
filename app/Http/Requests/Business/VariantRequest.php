@@ -7,13 +7,14 @@ use App\Enums\ItemKind;
 use App\Enums\PolicyStatus;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Rules\Sku;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 /**
  * Exact saleable variant. SKU is unique per organization (S2).
  */
-class VariantRequest extends FormRequest
+abstract class VariantRequest extends FormRequest
 {
     public function product(): Product
     {
@@ -36,7 +37,7 @@ class VariantRequest extends FormRequest
         $variant = $this->route('variant');
 
         return [
-            'sku' => ['required', 'string', 'max:80', 'regex:/^[A-Za-z0-9._\-]+$/',
+            'sku' => ['required', 'string', new Sku,
                 Rule::unique('product_variants', 'sku')->where('organization_id', $org)->ignore($variant instanceof ProductVariant ? $variant->id : null)],
             'variant_name' => ['required', 'string', 'max:160'],
             'item_kind' => ['required', Rule::enum(ItemKind::class)],
@@ -48,7 +49,7 @@ class VariantRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $this->merge(['sku' => strtoupper(trim((string) $this->input('sku')))]);
+        $this->merge(['sku' => Sku::normalize($this->input('sku'))]);
     }
 
     /**

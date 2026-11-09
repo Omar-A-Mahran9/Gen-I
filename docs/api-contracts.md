@@ -18,31 +18,41 @@
 | Money | `{ "amount": "1234.50", "currency": "EGP" }`. Amount as a **string** decimal (never float). Currency per BD-04 |
 | Dates | ISO-8601 with offset, UTC (`2026-11-01T10:00:00Z`) |
 | Freshness | Price/stock facts include `observed_at` and `expires_at` (S2 §7, FR-10) |
-| Pagination | `?page=&per_page=` (max 100). Response includes `data`, `links`, `meta` (Laravel paginator) |
-| Filtering/sorting | `?filter[field]=value&sort=-created_at` on documented fields only (allow-list) |
+| Pagination | `?page=&per_page=` (1–100, default 25). Response includes `data`, `links`, `meta` (Laravel paginator). A non-integer or out-of-range `page`/`per_page` → `422 validation_failed` |
+| Filtering/sorting | `?filter[field]=value&sort=-created_at` on documented fields only (allow-list). Unknown filter or sort keys → `422 validation_failed` with `errors.filter` / `errors.sort` (`App\Support\ApiListing`) |
 | Request ID | Client may send `X-Request-Id`; server always returns one |
 | Idempotency | All non-idempotent `POST` mutations that create bookings, reservations, RFQs, quote actions or consents **require** `Idempotency-Key`. A replay with the same key and body returns the original response; the same key with a different body returns `409` |
 | Rate limiting | Named limiters: `api-public` (per IP), `api-auth` (per user), stricter `api-forms` for RFQ/booking submissions |
 | Authentication | Sanctum (TD-11). SPA cookie vs bearer token per OT-06 |
 
-## 2. Response envelope
+## 2. Response structure (LMS `RespondsWithHttpStatus`, adopted 2026-11-09)
 
-Success (single resource):
+Every `/api/v1` response uses the legacy LMS structure, built only by `App\Support\ApiResponse`.
+
+Success (single resource or action):
 ```json
-{ "data": { "id": "9b1d…", "type": "repair_booking", "reference": "RB-2026-000123", "status": "confirmed" } }
+{ "success": true, "data": { "id": 7, "name": "Example" }, "message": "Created successfully." }
 ```
 
-Error (all errors use this shape):
+Paginated list:
+```json
+{ "success": true, "data": [ … ], "links": { "first": "…", "last": "…", "prev": null, "next": "…" },
+  "meta": { "current_page": 1, "per_page": 25, "total": 40, "last_page": 2, … }, "message": "Data retrieved successfully." }
+```
+
+Delete: `200 {"success": true, "data": null, "message": "Deleted successfully."}` (no more `204`).
+
+Failure (all errors):
 ```json
 {
-  "error": {
-    "code": "validation_failed",
-    "message": "The given data was invalid.",
-    "details": { "mobile": ["The mobile format is invalid."] },
-    "request_id": "01JC…"
-  }
+  "success": false,
+  "message": "The given data was invalid.",
+  "code": "validation_failed",
+  "errors": { "mobile": ["The mobile format is invalid."] },
+  "request_id": "01JC…"
 }
 ```
+`errors` appears only for validation failures (LMS `validationFailure`). `code` and `request_id` are GEN-I additions (stable error codes and correlation IDs, S1-D2-01). An optional `data` carries structured context (e.g. the catalog import report). Messages follow `Accept-Language` (`lang/{ar,en}/api.php`).
 
 | HTTP | `code` | Meaning (S2 §7 distinctions) |
 |---|---|---|
@@ -51,7 +61,11 @@ Error (all errors use this shape):
 | 403 | `forbidden` | Authenticated but not permitted / out of scope |
 | 404 | `not_found` | Missing **or not visible in caller's scope** (prevents ID probing) |
 | 409 | `conflict` | State/version conflict, slot taken, idempotency mismatch |
+| 413 | `payload_too_large` | Request body over the server limit |
+| 415 | `unsupported_media_type` | Unsupported request content type |
 | 422 | `validation_failed` | Form Request validation |
+| 422 | `business_rule_violation` | Business-rule refusal (`AdminActionException`) |
+| 422 | `import_rejected` | Catalog import quarantined; `data` holds the import report (catalog-import-contract.md §7) |
 | 429 | `rate_limited` | Throttled (`Retry-After` header) |
 | 502 / 503 | `provider_failure` / `service_unavailable` | External provider failure / retryable outage. Never reported as success (BR10) |
 | 500 | `server_error` | Unexpected; details withheld |
@@ -99,9 +113,9 @@ Feature tests assert these shapes.
 
 | Method & path | Auth | Throttle | Request | Success | Errors |
 |---|---|---|---|---|---|
-| `POST /api/v1/auth/token` | public | `api-token`: 5/min per email+IP, 20/min per IP | `email`, `password`, `device_name` (≤100) | `201 {data: {token, token_type: "Bearer", user}}` | `422 validation_failed` (bad credentials or inactive account → `details.email`), `429 rate_limited` |
-| `GET /api/v1/user` | Bearer token, active account | `api`: 60/min per user | — | `200 {data: UserResource}` | `401 unauthenticated` |
-| `DELETE /api/v1/auth/token` | Bearer token | `api` | — | `204` (current token revoked) | `401 unauthenticated` |
+| `POST /api/v1/auth/token` | public | `api-token`: 5/min per email+IP, 20/min per IP | `email`, `password`, `device_name` (≤100) | `201 {success, data: {token, token_type: "Bearer", user}, message}` | `422 validation_failed` (bad credentials or inactive account → `errors.email`), `429 rate_limited` |
+| `GET /api/v1/user` | Bearer token, active account | `api`: 60/min per user | — | `200 {success, data: UserResource, message}` | `401 unauthenticated` |
+| `DELETE /api/v1/auth/token` | Bearer token | `api` | — | `200 {success, data: null, message}` (current token revoked) | `401 unauthenticated` |
 
 `UserResource`: `id`, `name`, `email`, `locale`, `is_active`, `email_verified_at`, `roles` (names), `created_at` (ISO-8601 UTC).
 Every response carries `X-Request-Id`; API responses carry `Content-Language`. Error bodies follow §2 (verified by `tests/Feature/Api/ApiFoundationTest.php`).
@@ -110,9 +124,9 @@ Note: `id` is currently the numeric primary key; switch to a public UUID if OT-0
 
 ## 6. Business module endpoints (Phase 2)
 
-All endpoints below require `Authorization: Bearer <token>` (Sanctum), an **active** account, and the listed permission. Rate limit: `api` (60/min per user). Records outside the caller's organization respond **404** (`not_found`), so IDs cannot be probed. Business-rule refusals respond **422** with `error.code = "business_rule_violation"` (or **409** `conflict`). Validation errors use `validation_failed` with `details`.
+All endpoints below require `Authorization: Bearer <token>` (Sanctum), an **active** account, and the listed permission. Rate limit: `api` (60/min per user). Records outside the caller's organization respond **404** (`not_found`), so IDs cannot be probed. Business-rule refusals respond **422** with `code = "business_rule_violation"` (or **409** `conflict`). Validation errors use `validation_failed` with `errors`.
 
-**List conventions:** `?search=` · `?filter[field]=value` (allow-listed) · `?sort=field` or `?sort=-field` · `?per_page=` (≤ 100). Responses are `{data: [...], links: {...}, meta: {current_page, per_page, total, ...}}`.
+**List conventions:** `?search=` · `?filter[field]=value` (allow-listed) · `?sort=field` or `?sort=-field` · `?per_page=` (≤ 100). Responses are `{success, data: [...], links: {...}, meta: {current_page, per_page, total, ...}, message}`.
 
 | Method & path | Permission | Notes |
 |---|---|---|
@@ -156,7 +170,7 @@ Content-Type: application/json
 ```
 ```json
 201 Created
-{"data": {"id": 7, "organization_id": 1, "code": "CAI-01", "name": "Cairo Festival City", "address_text": "Ring Road, New Cairo",
+{"success": true, "message": "Created successfully.", "data": {"id": 7, "organization_id": 1, "code": "CAI-01", "name": "Cairo Festival City", "address_text": "Ring Road, New Cairo",
   "city": "Cairo", "phone": null, "email": null,
   "location": {"latitude": 30.0287, "longitude": 31.4086, "directions_url": "https://www.google.com/maps/search/?api=1&query=30.0287000,31.4086000"},
   "opening_hours": {"sat": [{"open": "10:00", "close": "22:00"}], "sun": [], "mon": [], "tue": [], "wed": [], "thu": [], "fri": [{"open": "13:00", "close": "23:00"}]},
@@ -170,7 +184,7 @@ POST /api/v1/price-lists/3/prices
 ```
 ```json
 201 Created
-{"data": {"id": 90, "price_list_id": 3, "variant": {"id": 41, "sku": "IP16-128-BLK", "name": "128GB Black"}, "min_quantity": 1,
+{"success": true, "message": "Created successfully.", "data": {"id": 90, "price_list_id": 3, "variant": {"id": 41, "sku": "IP16-128-BLK", "name": "128GB Black"}, "min_quantity": 1,
   "unit_price": {"amount": "52999.99", "currency": "EGP"}, "tax_policy_id": 2,
   "valid_from": "2026-11-01T06:15:00Z", "valid_to": null, "state": "current", "created_at": "2026-11-01T06:15:00Z"}}
 ```
@@ -183,7 +197,7 @@ Idempotency-Key: rcpt-2026-11-01-0001
 ```
 ```json
 201 Created   (a replay with the same key and payload → 200 with the same movement; a different payload → 409)
-{"data": {"id": 512, "branch": {"id": 7, "code": "CAI-01"}, "variant": {"id": 41, "sku": "IP16-128-BLK"},
+{"success": true, "message": "Stock updated successfully.", "data": {"id": 512, "branch": {"id": 7, "code": "CAI-01"}, "variant": {"id": 41, "sku": "IP16-128-BLK"},
   "quantity_delta": 10, "on_hand_after": 10, "reason": "receipt", "source_event_id": "manual:rcpt-2026-11-01-0001",
   "note": null, "created_by": 2, "created_at": "2026-11-01T06:20:00Z"}}
 ```
@@ -191,5 +205,27 @@ Idempotency-Key: rcpt-2026-11-01-0001
 Business-rule refusal:
 ```json
 422 Unprocessable Content
-{"error": {"code": "business_rule_violation", "message": "Insufficient stock: only 10 unit(s) on hand.", "request_id": "01JC…"}}
+{"success": false, "message": "Insufficient stock: only 10 unit(s) on hand.", "code": "business_rule_violation", "request_id": "01JC…"}
 ```
+
+## 7. Shared conventions as implemented (S1-D2-01, 2026-11-09)
+
+| Concern | Implementation |
+|---|---|
+| Response builder | `App\Support\ApiResponse` (`success`, `successWithPagination`, `failure`, `codeForStatus`) is the only place that builds `/api/v1` bodies. It is used by the exception renderer (`bootstrap/app.php`), `AdminActionException` and the controller trait |
+| Controller helpers | Every API controller extends `App\Http\Controllers\Api\V1\ApiController`, which uses `App\Http\Controllers\Concerns\RespondsWithHttpStatus`. The trait is the LMS trait with the same method names: `success($message, $data, $status)`, `successWithPagination($message, $collection)`, `failure($message, $status, $code, $data)`, `validationFailure($errors)` |
+| Status codes | `201` for creates, `200` for everything else that succeeds (deletes included). `ApiResponse::codeForStatus()` maps errors: 400 `bad_request`, 401, 403, 404, 405, 409, 413, 415, 422, 429, 500, 503; anything else → `http_error` |
+| Listing | `ApiListing::filters()` / `paginate()` validate `filter`, `sort`, `page`, `per_page` against the endpoint's allow-list |
+| Correlation | `X-Request-Id` (client value echoed, otherwise generated) on every response and in failure `request_id` |
+| Validation | Form Requests split LMS-style into `StoreXRequest` / `UpdateXRequest` for every business resource. Shared rules live in an abstract `XRequest`; authorization is in the subclasses (create vs update; child records authorize through their parent). Reusable rules sit in `app/Rules` (`Sku`, `CategoryCode`, `TypedAttributeValue`) |
+
+**Breaking change (2026-11-09):** the previous `{data}` / `{error: {code, message, details, request_id}}` envelope and `204` deletes were replaced by the LMS structure above on the owner's instruction. No external client consumed the API yet (React frontend not started).
+
+### Catalog import endpoints
+
+| Method & path | Permission | Notes |
+|---|---|---|
+| `POST /catalog/imports` (multipart, 10/min) | catalog.import | `file`, `mode=atomic\|partial`, `dry_run`, `organization_id` (super admin). 200 report, 422 `import_rejected` / `validation_failed` |
+| `GET /catalog/imports/template` | catalog.import | `?category_code=` adds `spec:` columns. Returns `text/csv` |
+
+Full contract: `docs/catalog-import-contract.md`.

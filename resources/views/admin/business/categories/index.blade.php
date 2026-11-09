@@ -5,7 +5,7 @@
 @section('toolbar')
     <x-admin.toolbar :title="__('admin.categories.title')" :subtitle="__('admin.categories.subtitle')" :breadcrumbs="[__('admin.menu.catalog') => null, __('admin.categories.title') => null]">
         @can('create', \App\Models\Category::class)
-            <x-admin.button :href="route('admin.categories.create')" icon="ki-plus" size="sm">{{ __('admin.categories.add') }}</x-admin.button>
+            <x-admin.button data-geni-crud-create="#geni_category_modal" icon="ki-plus" size="sm">{{ __('admin.categories.add') }}</x-admin.button>
         @endcan
     </x-admin.toolbar>
 @endsection
@@ -34,4 +34,6 @@
                 ]" />
         </div>
     </div>
+
+    @include('admin.business.categories.partials.form-modal', ['table' => '#geni_categories_table'])
 @endsection

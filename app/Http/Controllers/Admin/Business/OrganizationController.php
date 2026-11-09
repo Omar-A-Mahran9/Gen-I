@@ -3,7 +3,8 @@
 namespace App\Http\Controllers\Admin\Business;
 
 use App\Enums\OrganizationStatus;
-use App\Http\Requests\Business\OrganizationRequest;
+use App\Http\Requests\Business\StoreOrganizationRequest;
+use App\Http\Requests\Business\UpdateOrganizationRequest;
 use App\Models\AuditLog;
 use App\Models\Organization;
 use App\Services\Business\OrganizationService;
@@ -37,19 +38,13 @@ class OrganizationController extends BusinessController
                 'counts' => e(__('admin.organizations.counts', ['companies' => $o->companies_count, 'branches' => $o->branches_count, 'users' => $o->users_count])),
                 'status' => view('admin.business.partials.status-badge', ['status' => $o->status])->render(),
                 'created_at' => e(format_date($o->created_at)),
-                'actions' => view('admin.business.partials.row-actions', ['model' => $o, 'route' => 'organizations', 'param' => $o])->render(),
+                'actions' => view('admin.business.partials.row-actions', ['model' => $o, 'route' => 'organizations', 'param' => $o,
+                    'editModal' => '#geni_organization_modal', 'record' => $o->only(['id', 'name', 'timezone', 'currency'])])->render(),
             ])
             ->toResponse();
     }
 
-    public function create(): View
-    {
-        Gate::authorize('create', Organization::class);
-
-        return view('admin.business.organizations.form', ['organization' => new Organization(config('admin.organization_defaults'))]);
-    }
-
-    public function store(OrganizationRequest $request): JsonResponse|RedirectResponse
+    public function store(StoreOrganizationRequest $request): JsonResponse|RedirectResponse
     {
         $organization = $this->service->create($request->validated(), $request->user());
 
@@ -66,14 +61,7 @@ class OrganizationController extends BusinessController
         ]);
     }
 
-    public function edit(Organization $organization): View
-    {
-        Gate::authorize('update', $organization);
-
-        return view('admin.business.organizations.form', ['organization' => $organization]);
-    }
-
-    public function update(OrganizationRequest $request, Organization $organization): JsonResponse|RedirectResponse
+    public function update(UpdateOrganizationRequest $request, Organization $organization): JsonResponse|RedirectResponse
     {
         $this->service->update($organization, $request->validated(), $request->user());
 

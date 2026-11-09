@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\Auth\LoginController;
 use App\Http\Controllers\Admin\Business\BranchController;
 use App\Http\Controllers\Admin\Business\BrandController;
+use App\Http\Controllers\Admin\Business\CatalogImportController;
 use App\Http\Controllers\Admin\Business\CategoryController;
 use App\Http\Controllers\Admin\Business\CompanyController;
 use App\Http\Controllers\Admin\Business\InventoryController;
@@ -70,7 +71,7 @@ Route::middleware(['auth', 'auth.session', 'admin.access'])->group(function (): 
 
     // Module 1 — Organizations & companies.
     Route::patch('organizations/{organization}/status', [OrganizationController::class, 'status'])->name('organizations.status');
-    Route::resource('organizations', OrganizationController::class);
+    Route::resource('organizations', OrganizationController::class)->except(['create', 'edit']);
 
     Route::patch('companies/{company}/status', [CompanyController::class, 'status'])->name('companies.status');
     Route::post('companies/{company}/members', [CompanyController::class, 'storeMember'])->name('companies.members.store');
@@ -79,7 +80,7 @@ Route::middleware(['auth', 'auth.session', 'admin.access'])->group(function (): 
     Route::post('companies/{company}/addresses', [CompanyController::class, 'storeAddress'])->name('companies.addresses.store');
     Route::put('companies/{company}/addresses/{address}', [CompanyController::class, 'updateAddress'])->name('companies.addresses.update');
     Route::delete('companies/{company}/addresses/{address}', [CompanyController::class, 'destroyAddress'])->name('companies.addresses.destroy');
-    Route::resource('companies', CompanyController::class);
+    Route::resource('companies', CompanyController::class)->except(['create', 'edit']);
 
     // Module 2 — Branches (stores and service branches).
     Route::patch('branches/{branch}/status', [BranchController::class, 'status'])->name('branches.status');
@@ -90,10 +91,14 @@ Route::middleware(['auth', 'auth.session', 'admin.access'])->group(function (): 
     Route::post('categories/{category}/attributes', [CategoryController::class, 'storeAttribute'])->name('categories.attributes.store');
     Route::put('categories/{category}/attributes/{attribute}', [CategoryController::class, 'updateAttribute'])->name('categories.attributes.update');
     Route::delete('categories/{category}/attributes/{attribute}', [CategoryController::class, 'destroyAttribute'])->name('categories.attributes.destroy');
-    Route::resource('categories', CategoryController::class);
+    Route::resource('categories', CategoryController::class)->except(['create', 'edit']);
 
     Route::patch('brands/{brand}/status', [BrandController::class, 'status'])->name('brands.status');
-    Route::resource('brands', BrandController::class);
+    Route::resource('brands', BrandController::class)->except(['create', 'edit']);
+
+    Route::get('catalog/import', [CatalogImportController::class, 'create'])->name('catalog.import.create');
+    Route::post('catalog/import', [CatalogImportController::class, 'store'])->middleware('throttle:10,1')->name('catalog.import.store');
+    Route::get('catalog/import/template', [CatalogImportController::class, 'template'])->name('catalog.import.template');
 
     Route::patch('products/{product}/status', [ProductController::class, 'status'])->name('products.status');
     Route::post('products/{product}/variants', [ProductController::class, 'storeVariant'])->name('products.variants.store');
@@ -114,7 +119,7 @@ Route::middleware(['auth', 'auth.session', 'admin.access'])->group(function (): 
 
     Route::patch('price-lists/{price_list}/status', [PriceListController::class, 'status'])->name('price-lists.status');
     Route::post('price-lists/{price_list}/prices', [PriceListController::class, 'storePrice'])->name('price-lists.prices.store');
-    Route::resource('price-lists', PriceListController::class);
+    Route::resource('price-lists', PriceListController::class)->except(['create', 'edit']);
     Route::put('prices/{price}', [PriceListController::class, 'updatePrice'])->name('prices.update');
     Route::delete('prices/{price}', [PriceListController::class, 'destroyPrice'])->name('prices.destroy');
 

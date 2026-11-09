@@ -126,7 +126,7 @@ class InventoryTest extends TestCase
         $this->assertSame($first->json('data.id'), $replay->json('data.id'));
         $this->assertSame(5, InventoryBalance::query()->value('on_hand'), 'A replay must not change stock twice.');
 
-        $this->postJson('/api/v1/inventory/adjustments', $this->payload(7), $headers)->assertStatus(409)->assertJsonPath('error.code', 'conflict');
+        $this->postJson('/api/v1/inventory/adjustments', $this->payload(7), $headers)->assertStatus(409)->assertJsonPath('code', 'conflict');
         $this->postJson('/api/v1/inventory/adjustments', $this->payload(1), ['Idempotency-Key' => 'bad key!'])->assertStatus(400);
 
         $this->getJson('/api/v1/inventory?filter[branch_id]='.$this->branch->id)->assertOk()->assertJsonPath('data.0.available', 5);

@@ -3,7 +3,8 @@
 namespace App\Http\Controllers\Admin\Business;
 
 use App\Enums\ActiveStatus;
-use App\Http\Requests\Business\BranchRequest;
+use App\Http\Requests\Business\StoreBranchRequest;
+use App\Http\Requests\Business\UpdateBranchRequest;
 use App\Models\Branch;
 use App\Services\Business\BranchService;
 use App\Services\Business\InventoryService;
@@ -49,7 +50,7 @@ class BranchController extends BusinessController
         return view('admin.business.branches.form', ['branch' => new Branch(['opening_hours' => BranchService::normalizeOpeningHours([])]), 'organizations' => $this->organizationOptions($request->user())]);
     }
 
-    public function store(BranchRequest $request): JsonResponse|RedirectResponse
+    public function store(StoreBranchRequest $request): JsonResponse|RedirectResponse
     {
         $branch = $this->service->create($request->payload(), $request->user());
 
@@ -76,7 +77,7 @@ class BranchController extends BusinessController
         return view('admin.business.branches.form', ['branch' => $branch, 'organizations' => $this->organizationOptions($request->user())]);
     }
 
-    public function update(BranchRequest $request, Branch $branch): JsonResponse|RedirectResponse
+    public function update(UpdateBranchRequest $request, Branch $branch): JsonResponse|RedirectResponse
     {
         $this->service->update($branch, $request->payload(), $request->user());
 

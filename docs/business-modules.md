@@ -98,17 +98,19 @@ Permissions are seeded idempotently from `config/admin.php`. **Only `super-admin
 
 | Module | Pages |
 |---|---|
-| Organizations | List (search, status), create/edit, profile (counts, activity), status, delete |
-| Companies | List (search, status, organization), create/edit, profile with members (add/remove) and addresses (add/remove), status transitions, delete |
+| Organizations | List (search, status), add/edit **modal**, profile (counts, activity), status, delete |
+| Companies | List (search, status, organization), add/edit **modal**, profile with members (add/remove) and addresses (add/remove), status transitions, delete |
 | Branches | List (search, status, organization), create/edit with a 7-day hours editor and coordinates, profile (details, hours, directions, stock totals, recent stock), status, delete |
-| Categories | List (search, status, top level), create/edit (parent), profile (children, own and inherited attributes, add/remove attribute) |
-| Brands | List, create/edit (with status) |
+| Categories | List (search, status, top level), add/edit **modal** (parent), profile (children, own and inherited attributes, add/remove attribute) |
+| Brands | List with add/edit **modal** and a status toggle row action |
 | Products | List (search incl. SKU, status, category, brand, item kind), create/edit, profile: variants (add, status, delete), specification editor per variant, image upload/review/remove, lifecycle actions |
 | Policies | List, draft create/edit (JSON rule body), profile with approve/retire |
-| Price lists | List, create/edit, profile with prices table (period filter) and add-price modal |
+| Price lists | List, add/edit **modal**, profile with prices table (period filter) and add-price modal |
 | Inventory | Stock levels (branch, stock filter, search) with adjustment modal; movements ledger (branch, reason, date range, search) |
 
 Every page has Arabic (default, RTL) and English (LTR) text, light and dark themes, permission-aware buttons and menu, confirmation dialogs, toasts, inline validation, empty states and DataTables loading states.
+
+Simple forms use modals on the list page; branches, products and policies keep full-page forms because of their size (owner instruction, 2026-11-09; see CLAUDE.md).
 
 ## 6. Deviations from the blueprint
 

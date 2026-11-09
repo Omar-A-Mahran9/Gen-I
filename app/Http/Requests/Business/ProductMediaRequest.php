@@ -13,7 +13,7 @@ use Illuminate\Validation\Rule;
  * Product image upload/update. Raster images only (no SVG); the variant must belong to the product.
  * Changing scan status or classification is a review action requiring catalog.approve.
  */
-class ProductMediaRequest extends FormRequest
+abstract class ProductMediaRequest extends FormRequest
 {
     public function product(): Product
     {

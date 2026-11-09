@@ -3,7 +3,8 @@
 namespace App\Http\Controllers\Admin\Business;
 
 use App\Enums\ActiveStatus;
-use App\Http\Requests\Business\BrandRequest;
+use App\Http\Requests\Business\StoreBrandRequest;
+use App\Http\Requests\Business\UpdateBrandRequest;
 use App\Models\Brand;
 use App\Services\Business\CatalogService;
 use App\Support\DataTable;
@@ -30,23 +31,21 @@ class BrandController extends BusinessController
             ->sortable(['name' => 'name', 'status' => 'status', 'created_at' => 'created_at'])
             ->defaultOrder('name', 'asc')
             ->map(fn (Brand $b) => [
-                'name' => '<a href="'.e(route('admin.brands.edit', $b)).'" class="text-gray-800 text-hover-primary fw-bold">'.e($b->name).'</a><div class="text-muted fs-7">'.e($b->organization?->name).'</div>',
+                'name' => '<span class="text-gray-800 fw-bold">'.e($b->name).'</span><div class="text-muted fs-7">'.e($b->organization?->name).'</div>',
                 'products' => (int) $b->products_count,
                 'status' => view('admin.business.partials.status-badge', ['status' => $b->status])->render(),
                 'created_at' => e(format_date($b->created_at)),
-                'actions' => view('admin.business.partials.row-actions', ['model' => $b, 'route' => 'brands', 'param' => $b, 'noShow' => true])->render(),
+                'actions' => view('admin.business.partials.row-actions', [
+                    'model' => $b, 'route' => 'brands', 'param' => $b, 'noShow' => true,
+                    'editModal' => '#geni_brand_modal', 'record' => ['id' => $b->id, 'organization_id' => $b->organization_id, 'name' => $b->name],
+                    'statusUrl' => route('admin.brands.status', $b),
+                    'statusTarget' => $b->status === ActiveStatus::Active ? ActiveStatus::Inactive : ActiveStatus::Active,
+                ])->render(),
             ])
             ->toResponse();
     }
 
-    public function create(Request $request): View
-    {
-        Gate::authorize('create', Brand::class);
-
-        return view('admin.business.brands.form', ['brand' => new Brand, 'organizations' => $this->organizationOptions($request->user())]);
-    }
-
-    public function store(BrandRequest $request): JsonResponse|RedirectResponse
+    public function store(StoreBrandRequest $request): JsonResponse|RedirectResponse
     {
         $this->service->saveBrand($request->payload(), $request->user());
 
@@ -57,17 +56,10 @@ class BrandController extends BusinessController
     {
         Gate::authorize('view', $brand);
 
-        return redirect()->route('admin.brands.edit', $brand);
+        return redirect()->route('admin.brands.index');
     }
 
-    public function edit(Request $request, Brand $brand): View
-    {
-        Gate::authorize('view', $brand);
-
-        return view('admin.business.brands.form', ['brand' => $brand->loadCount('products'), 'organizations' => $this->organizationOptions($request->user())]);
-    }
-
-    public function update(BrandRequest $request, Brand $brand): JsonResponse|RedirectResponse
+    public function update(UpdateBrandRequest $request, Brand $brand): JsonResponse|RedirectResponse
     {
         $this->service->saveBrand($request->payload(), $request->user(), $brand);
 

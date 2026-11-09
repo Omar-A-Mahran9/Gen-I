@@ -138,3 +138,29 @@ Organizations & companies, branches (stores), product catalog, and policy versio
 - Public read-only catalog/store API for the React site (OT-06, OT-13).
 - MOD04 repairs (BD-05).
 - MOD05 RFQ/quotations (BD-02).
+
+## S1-D2-01 — API conventions, validation, seeds and catalog import contract (2026-11-09)
+
+Branch `feature/S1-D2-01-api-conventions-catalog-import`.
+- **API conventions:**
+  - LMS response structure `{success, data, message}` / `{success: false, message, code, errors?, request_id}` on every endpoint;
+  - `ApiController` + `RespondsWithHttpStatus` with the LMS method names;
+  - 400/413/415 codes;
+  - allow-listed filter/sort/paging validation.
+- **Validation:**
+  - every business Form Request split into `StoreXRequest` / `UpdateXRequest` over a shared abstract base;
+  - reusable `app/Rules` (`Sku`, `CategoryCode`, `TypedAttributeValue`).
+- **Admin forms (LMS pattern):**
+  - simple records edit in add/edit modals on the list page: organizations, companies, categories, brands, price lists;
+  - complex records keep full pages: branches (opening hours, coordinates), products (variants, specifications, images), policies (JSON rule editor);
+  - shared `<x-admin.crud-modal>` + `resources/js/admin/crud-modal.js`; the catalog import page is an AJAX form.
+- **Seeds:**
+  - `catalog.import` permission (super-admin only, TD-28);
+  - idempotent `SettingsSeeder`.
+  - Not seeded: organization, category vocabulary and commercial data (OT-02, BD-04, S1-D2-02).
+- **Catalog import:** CSV contract v1 with atomic/partial/dry-run modes, available through the API and admin. See `docs/catalog-import-contract.md`.
+
+Verification:
+- SQLite suite green.
+- Headless-Chrome walkthrough of the modals and the import page passed: 10/10 checks, no JavaScript errors.
+- MySQL run pending: the local `.env` now targets XAMPP MariaDB as `root` (TD-30), which `CLAUDE.md` forbids for the app.

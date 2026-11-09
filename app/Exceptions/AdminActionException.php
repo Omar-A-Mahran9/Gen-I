@@ -2,6 +2,7 @@
 
 namespace App\Exceptions;
 
+use App\Support\ApiResponse;
 use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -11,11 +12,14 @@ use Illuminate\Http\Request;
  * A business-rule refusal (e.g. last super administrator, invalid status
  * transition, insufficient stock). The message is already translated.
  *
- * Rendering: API → standard error envelope; AJAX → {message}; forms → back with error flash.
+ * Rendering: API → standard failure body; AJAX → {message}; forms → back with error flash.
  */
 class AdminActionException extends Exception
 {
-    public function __construct(string $message, protected int $status = 422, protected string $errorCode = 'business_rule_violation')
+    /**
+     * @param  mixed  $data  optional structured context returned as "data" in the API failure body
+     */
+    public function __construct(string $message, protected int $status = 422, protected string $errorCode = 'business_rule_violation', protected mixed $data = null)
     {
         parent::__construct($message);
     }
@@ -23,6 +27,16 @@ class AdminActionException extends Exception
     public static function conflict(string $message): self
     {
         return new self($message, 409, 'conflict');
+    }
+
+    public function errorCode(): string
+    {
+        return $this->errorCode;
+    }
+
+    public function data(): mixed
+    {
+        return $this->data;
     }
 
     public function status(): int
@@ -33,11 +47,7 @@ class AdminActionException extends Exception
     public function render(Request $request): JsonResponse|RedirectResponse
     {
         if ($request->is('api/*')) {
-            return response()->json(['error' => array_filter([
-                'code' => $this->errorCode,
-                'message' => $this->getMessage(),
-                'request_id' => $request->attributes->get('request_id'),
-            ])], $this->status);
+            return ApiResponse::failure($request, $this->status, $this->getMessage(), $this->errorCode, null, $this->data);
         }
 
         if ($request->expectsJson()) {

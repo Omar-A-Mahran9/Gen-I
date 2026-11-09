@@ -3,7 +3,6 @@
 namespace App\Services\Business;
 
 use App\Enums\ActiveStatus;
-use App\Enums\AttributeValueType;
 use App\Enums\MediaClassification;
 use App\Enums\ProductStatus;
 use App\Enums\ScanStatus;
@@ -16,6 +15,7 @@ use App\Models\ProductMedia;
 use App\Models\ProductVariant;
 use App\Models\User;
 use App\Models\VariantAttribute;
+use App\Rules\TypedAttributeValue;
 use App\Services\Audit\AuditLogger;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -254,12 +254,7 @@ class ProductService
                     continue;
                 }
 
-                $typed = ['text_value' => null, 'number_value' => null, 'boolean_value' => null];
-                match ($definition->value_type) {
-                    AttributeValueType::Number => $typed['number_value'] = $row['value'],
-                    AttributeValueType::Boolean => $typed['boolean_value'] = filter_var($row['value'], FILTER_VALIDATE_BOOLEAN),
-                    AttributeValueType::Text => $typed['text_value'] = (string) $row['value'],
-                };
+                $typed = TypedAttributeValue::toColumns($definition->value_type, $row['value']);
 
                 VariantAttribute::query()->updateOrCreate(
                     ['variant_id' => $variant->id, 'attribute_id' => $definition->id],
@@ -276,6 +271,85 @@ class ProductService
 
             $this->audit->log('variant.specifications_updated', $variant, ['sku' => $variant->sku, 'attributes' => count($keep)], $actor);
         });
+    }
+
+    /**
+     * Merge typed specifications into a variant without removing values that are not supplied
+     * (used by the catalog import). A value whose typed value and source are unchanged is left
+     * untouched, including its verified_at, unless a new verified_at is supplied.
+     *
+     * @param  array<int, array{definition: AttributeDefinition, value: mixed, source_reference: string, verified_at?: string|null}>  $values
+     * @return int number of specification rows created or changed
+     */
+    public function mergeVariantAttributes(ProductVariant $variant, array $values, User $actor): int
+    {
+        return DB::transaction(function () use ($variant, $values, $actor): int {
+            $existing = $variant->attributeValues()->get()->keyBy('attribute_id');
+            $written = [];
+
+            foreach ($values as $row) {
+                $definition = $row['definition'];
+
+                if ((int) $definition->organization_id !== (int) $variant->organization_id) {
+                    throw new AdminActionException(__('admin.errors.attribute_not_applicable'));
+                }
+
+                $typed = TypedAttributeValue::toColumns($definition->value_type, $row['value']);
+                $verifiedAt = $row['verified_at'] ?? null;
+                $current = $existing->get($definition->id);
+
+                if ($current !== null && $verifiedAt === null && $current->source_reference === $row['source_reference'] && $this->sameTypedValue($current, $typed)) {
+                    continue;
+                }
+
+                VariantAttribute::query()->updateOrCreate(
+                    ['variant_id' => $variant->id, 'attribute_id' => $definition->id],
+                    $typed + [
+                        'organization_id' => $variant->organization_id,
+                        'source_reference' => $row['source_reference'],
+                        'verified_at' => $verifiedAt ?? now(),
+                    ],
+                );
+                $written[] = $definition->code;
+            }
+
+            if ($written !== []) {
+                $this->audit->log('variant.specifications_updated', $variant, ['sku' => $variant->sku, 'attributes' => count($written), 'codes' => $written], $actor);
+            }
+
+            return count($written);
+        });
+    }
+
+    /**
+     * @param  array{text_value: string|null, number_value: string|null, boolean_value: bool|null}  $typed
+     */
+    protected function sameTypedValue(VariantAttribute $current, array $typed): bool
+    {
+        return match (true) {
+            $typed['number_value'] !== null => $current->number_value !== null && $this->canonicalDecimal((string) $current->number_value) === $this->canonicalDecimal($typed['number_value']),
+            $typed['boolean_value'] !== null => $current->boolean_value === $typed['boolean_value'],
+            default => $current->text_value === $typed['text_value'],
+        };
+    }
+
+    /**
+     * Canonical decimal(18,6) string ("6.1", "06.100000" and "6.1e0" all become "6.100000") without float rounding.
+     */
+    protected function canonicalDecimal(string $number): string
+    {
+        $number = trim($number);
+
+        if (stripos($number, 'e') !== false) {
+            $number = sprintf('%.6F', (float) $number);
+        }
+
+        $negative = str_starts_with($number, '-');
+        [$integer, $fraction] = array_pad(explode('.', ltrim($number, '+-'), 2), 2, '');
+        $integer = ltrim($integer, '0') ?: '0';
+        $fraction = str_pad(substr($fraction, 0, 6), 6, '0');
+
+        return ($negative && ($integer !== '0' || $fraction !== '000000') ? '-' : '').$integer.'.'.$fraction;
     }
 
     /**

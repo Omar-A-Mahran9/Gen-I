@@ -5,6 +5,7 @@ use App\Http\Middleware\EnsureTokenUserIsActive;
 use App\Http\Middleware\EnsureUserCanAccessAdmin;
 use App\Http\Middleware\SetApiLocale;
 use App\Http\Middleware\SetLocale;
+use App\Support\ApiResponse;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Foundation\Application;
@@ -56,35 +57,32 @@ return Application::configure(basePath: dirname(__DIR__))
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
 
-        // Consistent error envelope for the versioned API (docs/api-contracts.md §2).
+        // Consistent failure body for the versioned API (docs/api-contracts.md §2): {success: false, message, code, errors?, request_id}.
         $exceptions->render(function (Throwable $e, Request $request) {
             if (! $request->is('api/*')) {
                 return null;
             }
 
-            $requestId = $request->attributes->get('request_id');
-            $envelope = fn (int $status, string $code, string $message, mixed $details = null, array $headers = []) => response()->json([
-                'error' => array_filter([
-                    'code' => $code,
-                    'message' => $message,
-                    'details' => $details,
-                    'request_id' => $requestId,
-                ], fn (mixed $value): bool => $value !== null),
-            ], $status, $headers);
+            $envelope = fn (int $status, string $message, ?array $errors = null, array $headers = []) => ApiResponse::failure(
+                $request, $status, $message, null, $errors, null, $headers,
+            );
 
             return match (true) {
-                $e instanceof ValidationException => $envelope(422, 'validation_failed', __('api.errors.validation_failed'), $e->errors()),
-                $e instanceof AuthenticationException => $envelope(401, 'unauthenticated', __('api.errors.unauthenticated')),
-                $e instanceof HttpExceptionInterface => match ($e->getStatusCode()) {
-                    403 => $envelope(403, 'forbidden', __('api.errors.forbidden')),
-                    404 => $envelope(404, 'not_found', __('api.errors.not_found')),
-                    405 => $envelope(405, 'method_not_allowed', __('api.errors.method_not_allowed')),
-                    409 => $envelope(409, 'conflict', $e->getMessage() ?: __('api.errors.conflict')),
-                    429 => $envelope(429, 'rate_limited', __('api.errors.rate_limited'), null, $e->getHeaders()),
-                    503 => $envelope(503, 'service_unavailable', __('api.errors.service_unavailable')),
-                    default => $envelope($e->getStatusCode(), 'http_error', $e->getMessage() ?: __('api.errors.server_error')),
+                $e instanceof ValidationException => $envelope(422, __('api.errors.validation_failed'), $e->errors()),
+                $e instanceof AuthenticationException => $envelope(401, __('api.errors.unauthenticated')),
+                $e instanceof HttpExceptionInterface => match ($status = $e->getStatusCode()) {
+                    400 => $envelope(400, $e->getMessage() ?: __('api.errors.bad_request')),
+                    403 => $envelope(403, __('api.errors.forbidden')),
+                    404 => $envelope(404, __('api.errors.not_found')),
+                    405 => $envelope(405, __('api.errors.method_not_allowed')),
+                    409 => $envelope(409, $e->getMessage() ?: __('api.errors.conflict')),
+                    413 => $envelope(413, __('api.errors.payload_too_large')),
+                    415 => $envelope(415, __('api.errors.unsupported_media_type')),
+                    429 => $envelope(429, __('api.errors.rate_limited'), null, $e->getHeaders()),
+                    503 => $envelope(503, __('api.errors.service_unavailable')),
+                    default => $envelope($status, $e->getMessage() ?: __('api.errors.server_error')),
                 },
-                default => $envelope(500, 'server_error', config('app.debug') ? $e->getMessage() : __('api.errors.server_error')),
+                default => $envelope(500, config('app.debug') ? $e->getMessage() : __('api.errors.server_error')),
             };
         });
     })->create();

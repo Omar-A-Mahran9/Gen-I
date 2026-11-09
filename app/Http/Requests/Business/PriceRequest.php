@@ -11,7 +11,7 @@ use Illuminate\Validation\Rule;
 /**
  * Effective-dated price. New prices cannot start in the past (history is never rewritten).
  */
-class PriceRequest extends FormRequest
+abstract class PriceRequest extends FormRequest
 {
     public function priceList(): PriceList
     {
